@@ -3,4 +3,5 @@
     <string name="appPermissionText">Our app requires access to use your microphone and camera. Please grant the necessary permissions to enable these features.</string>
     <string name="allowButton">ALLOW</string>
     <string name="detectedClasses">Sample Text Detected</string>
+    <string name="contentImage">aaaaa</string>
 </resources>
