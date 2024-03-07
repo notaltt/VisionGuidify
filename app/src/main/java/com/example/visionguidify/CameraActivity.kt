@@ -125,8 +125,15 @@ class CameraActivity : AppCompatActivity() {
                 val scores = outputs.scoresAsTensorBuffer.floatArray
                 val numberOfDetections = outputs.numberOfDetectionsAsTensorBuffer.floatArray
 
+                val maxObjects = 5
                 val focalLength = 20
-                val knownWidth = .5
+                val knownWidth = 50
+
+                val filteredIndices = scores.withIndex()
+                    .filter { (_, score) -> score > 0.5 }
+                    .sortedByDescending { (_, score) -> score }
+                    .take(maxObjects)
+                    .map { (index, _) -> index }
 
                 var mutable = bitmap.copy(Bitmap.Config.ARGB_8888, true)
                 val canvas = Canvas(mutable)
@@ -136,18 +143,15 @@ class CameraActivity : AppCompatActivity() {
                 paint.textSize = h/40f
                 paint.strokeWidth = h/150f
                 var x = 0
-                scores.forEachIndexed { index, fl ->
-                    x = index
-                    x *= 4
-                    if(fl > 0.5){
-                        paint.setColor(colors.get(index))
-                        paint.style = Paint.Style.STROKE
-                        canvas.drawRect(RectF(locations.get(x+1)*w, locations.get(x)*h, locations.get(x+3)*w, locations.get(x+2)*h), paint)
-                        paint.style = Paint.Style.FILL
-                        val distance = (knownWidth * focalLength) / (locations.get(x+3) - locations.get(x+1))
-                        canvas.drawText(labels.get(classes.get(index).toInt()) + " " + fl.toString(), locations.get(x+1)*w, locations.get(x)*h, paint)
-                        canvas.drawText("Distance: " + distance.toString() + "m", locations.get(x+1)*w, locations.get(x)*h-25, paint)
-                    }
+                filteredIndices.forEach { index ->
+                    val x = index * 4
+                    paint.setColor(colors[index])
+                    paint.style = Paint.Style.STROKE
+                    canvas.drawRect(RectF(locations[x + 1] * w, locations[x] * h, locations[x + 3] * w, locations[x + 2] * h), paint)
+                    paint.style = Paint.Style.FILL
+                    val distance = (knownWidth * focalLength) / (locations[x + 3] - locations[x + 1])
+                    canvas.drawText(labels[classes[index].toInt()] + " " + scores[index], locations[x + 1] * w, locations[x] * h, paint)
+                    canvas.drawText("Distance: " + "%.2f".format(distance / 10) + " cm", locations[x + 1] * w, locations[x] * h - 25, paint)
                 }
 
                 imageView.setImageBitmap(mutable)
