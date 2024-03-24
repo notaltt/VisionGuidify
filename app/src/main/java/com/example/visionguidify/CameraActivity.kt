@@ -8,24 +8,28 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.RectF
 import android.graphics.SurfaceTexture
+import android.graphics.Typeface
 import android.hardware.camera2.CameraCaptureSession
 import android.hardware.camera2.CameraDevice
 import android.hardware.camera2.CameraManager
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.os.Handler
 import android.os.HandlerThread
+import android.util.Log
 import android.view.Surface
 import android.view.TextureView
 import android.widget.ImageView
 import android.widget.TextView
-import com.example.visionguidify.ml.SsdMobilenetV11Metadata1
+import androidx.appcompat.app.AppCompatActivity
+import com.example.visionguidify.ml.Detect
+import com.example.visionguidify.ml.DetectQuant
+import org.tensorflow.lite.DataType
 import org.tensorflow.lite.support.common.FileUtil
 import org.tensorflow.lite.support.image.ImageProcessor
-import org.tensorflow.lite.support.image.TensorImage
 import org.tensorflow.lite.support.image.ops.ResizeOp
-
+import org.tensorflow.lite.support.tensorbuffer.TensorBuffer
 import java.nio.ByteBuffer
+import java.nio.ByteOrder
 
 class CameraActivity : AppCompatActivity() {
 
@@ -42,16 +46,17 @@ class CameraActivity : AppCompatActivity() {
     lateinit var cameraDevice: CameraDevice
     lateinit var bitmap: Bitmap
     lateinit var byteBuffer: ByteBuffer
-    lateinit var model:SsdMobilenetV11Metadata1
+    lateinit var model: DetectQuant
     lateinit var imageProcessor: ImageProcessor
-    val intValues = IntArray(224 * 224)
+    val intValues = IntArray(320 * 320)
+    val imageSize = 320
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_camera)
 
         labels = FileUtil.loadLabels(this, "labels.txt")
-        model = SsdMobilenetV11Metadata1.newInstance(this)
+        model = DetectQuant.newInstance(this)
         imageProcessor = ImageProcessor.Builder().add(ResizeOp(300, 300, ResizeOp.ResizeMethod.BILINEAR)).build()
 
         val handlerThread = HandlerThread("videoThread")
@@ -77,84 +82,75 @@ class CameraActivity : AppCompatActivity() {
             override fun onSurfaceTextureUpdated(p0: SurfaceTexture) {
                 bitmap = textureView.bitmap!!
 
-//                val inputFeature0 = TensorBuffer.createFixedSize(intArrayOf(1, 224, 224, 3), DataType.UINT8)
-//
-//                // Resize the bitmap to match the TensorBuffer dimensions
-//                val resizedBitmap = Bitmap.createScaledBitmap(bitmap, 224, 224, false)
-//
-//                // Load the resized bitmap into the input TensorBuffer
-//                val byteBuffer = ByteBuffer.allocateDirect(1 * 224 * 224 * 3)
-//                byteBuffer.order(ByteOrder.nativeOrder())
-//                resizedBitmap.getPixels(intValues, 0, resizedBitmap.width, 0, 0, resizedBitmap.width, resizedBitmap.height)
-//                var pixel = 0
-//                for (i in 0 until 224) {
-//                    for (j in 0 until 224) {
-//                        val `val` = intValues[pixel++]
-//                        byteBuffer.put(((`val` shr 16) and 0xFF).toByte())
-//                        byteBuffer.put(((`val` shr 8) and 0xFF).toByte())
-//                        byteBuffer.put((`val` and 0xFF).toByte())
-//                    }
-//                }
-//                inputFeature0.loadBuffer(byteBuffer)
-//
-//                // Run inference
-//                val outputs = model.process(inputFeature0)
-//                val outputFeature0 = outputs.outputFeature0AsTensorBuffer
-//
-//                println(outputFeature0.floatArray)
-//                val confidences = outputFeature0.floatArray
-//                println(confidences.indices)
-//                // find the index of the class with the biggest confidence.
-//                var maxPos = 0
-//                var maxConfidence = 0f
-//                for (i in confidences.indices) {
-//                    if (confidences[i] > maxConfidence) {
-//                        maxConfidence = confidences[i]
-//                        maxPos = i
-//                    }
-//                }
-//                val classes = arrayOf("Person", "Flower", "Chair")
-//                textView.text = classes[maxPos]
+                val imageSize = 320
+                val byteBuffer = ByteBuffer.allocateDirect(1 * imageSize * imageSize * 3)
+                byteBuffer.order(ByteOrder.nativeOrder())
 
-                var image = TensorImage.fromBitmap(bitmap)
-                image = imageProcessor.process(image)
+                val intValues = IntArray(imageSize * imageSize)
+                bitmap.getPixels(intValues, 0, imageSize, 0, 0, imageSize, imageSize)
 
-                val outputs = model.process(image)
-                val locations = outputs.locationsAsTensorBuffer.floatArray
-                val classes = outputs.classesAsTensorBuffer.floatArray
-                val scores = outputs.scoresAsTensorBuffer.floatArray
-                val numberOfDetections = outputs.numberOfDetectionsAsTensorBuffer.floatArray
+                var pixel = 0
+                for (i in 0 until imageSize) {
+                    for (j in 0 until imageSize) {
+                        val valRGB = intValues[pixel++] // RGB
+                        byteBuffer.put((valRGB shr 16 and 0xFF).toByte())
+                        byteBuffer.put((valRGB shr 8 and 0xFF).toByte())
+                        byteBuffer.put((valRGB and 0xFF).toByte())
+                    }
+                }
 
-                val maxObjects = 5
+                val inputFeature0 = TensorBuffer.createFixedSize(intArrayOf(1, 320, 320, 3), DataType.UINT8)
+                inputFeature0.loadBuffer(byteBuffer)
+
+                val outputs = model.process(inputFeature0)
+                val detection_scores = outputs.outputFeature0AsTensorBuffer.floatArray
+                val detection_boxes = outputs.outputFeature1AsTensorBuffer.floatArray
+                val num_detections = outputs.outputFeature2AsTensorBuffer.floatArray
+                val detection_classes  = outputs.outputFeature3AsTensorBuffer.floatArray
+
+//                Log.d("Tag", "Output Tensor 0: ${outputs.outputFeature0AsTensorBuffer.floatArray.joinToString(", ")}")
+//                Log.d("Tag", "Output Tensor 1: ${outputs.outputFeature1AsTensorBuffer.floatArray.joinToString(", ")}")
+//                Log.d("Tag", "Output Tensor 2: ${outputs.outputFeature2AsTensorBuffer.floatArray.joinToString(", ")}")
+//                Log.d("Tag", "Output Tensor 3: ${outputs.outputFeature3AsTensorBuffer.floatArray.joinToString(", ")}")
+
+
                 val focalLength = 20
                 val knownWidth = 50
 
-                val filteredIndices = scores.withIndex()
+                val maxObjects = 5
+                val filteredIndices = detection_scores.withIndex()
                     .filter { (_, score) -> score > 0.5 }
                     .sortedByDescending { (_, score) -> score }
                     .take(maxObjects)
                     .map { (index, _) -> index }
 
-                var mutable = bitmap.copy(Bitmap.Config.ARGB_8888, true)
-                val canvas = Canvas(mutable)
+                // Draw bounding boxes on the detected objects and display additional information
+                val canvas = Canvas(bitmap)
+                val paint = Paint().apply {
+                    color = Color.RED
+                    style = Paint.Style.STROKE
+                    strokeWidth = 4f
+                    textSize = 30f
+                    textAlign = Paint.Align.LEFT
+                    typeface = Typeface.DEFAULT_BOLD
+                }
 
-                val h = mutable.height
-                val w = mutable.width
+                val h = bitmap.height.toFloat()
+                val w = bitmap.width.toFloat()
                 paint.textSize = h/40f
                 paint.strokeWidth = h/150f
-                var x = 0
                 filteredIndices.forEach { index ->
                     val x = index * 4
                     paint.setColor(colors[index])
                     paint.style = Paint.Style.STROKE
-                    canvas.drawRect(RectF(locations[x + 1] * w, locations[x] * h, locations[x + 3] * w, locations[x + 2] * h), paint)
+                    canvas.drawRect(RectF(detection_boxes[x + 1] * w, detection_boxes[x] * h, detection_boxes[x + 3] * w, detection_boxes[x + 2] * h), paint)
                     paint.style = Paint.Style.FILL
-                    val distance = (knownWidth * focalLength) / (locations[x + 3] - locations[x + 1])
-                    canvas.drawText(labels[classes[index].toInt()] + " " + scores[index], locations[x + 1] * w, locations[x] * h, paint)
-                    canvas.drawText("Distance: " + "%.2f".format(distance / 10) + " cm", locations[x + 1] * w, locations[x] * h - 25, paint)
+                    val distance = (knownWidth * focalLength) / (detection_boxes[x + 3] - detection_boxes[x + 1])
+                    canvas.drawText(labels[detection_classes[index].toInt()] + " " + detection_scores[index], detection_boxes[x + 1] * w, detection_boxes[x] * h, paint)
+                    canvas.drawText("Distance: " + "%.2f".format(distance / 10) + " cm", detection_boxes[x + 1] * w, detection_boxes[x] * h - 25, paint)
                 }
 
-                imageView.setImageBitmap(mutable)
+                imageView.setImageBitmap(bitmap)
 
             }
 
