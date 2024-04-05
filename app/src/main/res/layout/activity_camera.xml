@@ -6,6 +6,21 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
+    <Button
+        android:id="@+id/scanButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentBottom="true"
+        android:layout_marginStart="160dp"
+        android:layout_marginTop="339dp"
+        android:layout_marginEnd="163dp"
+        android:layout_marginBottom="344dp"
+        android:text="@string/scan"
+        android:visibility="visible" />
+
     <TextureView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -19,7 +34,7 @@
         android:id="@+id/imageView"
         android:contentDescription="@string/contentImage" />
 
-<!--    <TextView-->
+    <!--    <TextView-->
 <!--        android:layout_width="wrap_content"-->
 <!--        android:layout_height="wrap_content"-->
 <!--        android:text="@string/detectedClasses"-->

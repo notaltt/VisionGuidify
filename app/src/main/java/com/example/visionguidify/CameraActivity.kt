@@ -2,6 +2,7 @@ package com.example.visionguidify
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
@@ -15,14 +16,16 @@ import android.hardware.camera2.CameraManager
 import android.os.Bundle
 import android.os.Handler
 import android.os.HandlerThread
+import android.speech.tts.TextToSpeech
 import android.util.Log
 import android.view.Surface
 import android.view.TextureView
+import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
-import com.example.visionguidify.ml.Detect
 import com.example.visionguidify.ml.DetectQuant
+import com.example.visionguidify.ml.Model
 import org.tensorflow.lite.DataType
 import org.tensorflow.lite.support.common.FileUtil
 import org.tensorflow.lite.support.image.ImageProcessor
@@ -30,34 +33,32 @@ import org.tensorflow.lite.support.image.ops.ResizeOp
 import org.tensorflow.lite.support.tensorbuffer.TensorBuffer
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import java.util.Locale
 
-class CameraActivity : AppCompatActivity() {
+class CameraActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
     var colors = listOf<Int>(
         Color.BLUE, Color.GREEN, Color.RED, Color.CYAN, Color.GRAY, Color.BLACK,
         Color.DKGRAY, Color.MAGENTA, Color.YELLOW, Color.RED)
-    val paint = Paint()
     lateinit var imageView: ImageView
     lateinit var labels:List<String>
     lateinit var textureView: TextureView
-    lateinit var textView: TextView
     lateinit var cameraManager: CameraManager
     lateinit var handler: Handler
     lateinit var cameraDevice: CameraDevice
     lateinit var bitmap: Bitmap
-    lateinit var byteBuffer: ByteBuffer
-    lateinit var model: DetectQuant
+    lateinit var model: Model
     lateinit var imageProcessor: ImageProcessor
-    val intValues = IntArray(320 * 320)
-    val imageSize = 320
+    lateinit var button: Button
+    private  var tts: TextToSpeech? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_camera)
 
         labels = FileUtil.loadLabels(this, "labels.txt")
-        model = DetectQuant.newInstance(this)
-        imageProcessor = ImageProcessor.Builder().add(ResizeOp(300, 300, ResizeOp.ResizeMethod.BILINEAR)).build()
+        model = Model.newInstance(this)
+        imageProcessor = ImageProcessor.Builder().add(ResizeOp(640, 640, ResizeOp.ResizeMethod.BILINEAR)).build()
 
         val handlerThread = HandlerThread("videoThread")
         handlerThread.start()
@@ -65,6 +66,15 @@ class CameraActivity : AppCompatActivity() {
 
         textureView = findViewById(R.id.textureView)
         imageView = findViewById(R.id.imageView)
+        button = findViewById(R.id.scanButton)
+        tts = TextToSpeech(this, this)
+
+        button.setOnClickListener{
+            speakText("QR detected")
+            val intent = Intent(this, ScanningActivity::class.java)
+            startActivity(intent)
+        }
+
 
 //        textView = findViewById(R.id.detectedClasses)
         textureView.surfaceTextureListener = object:TextureView.SurfaceTextureListener{
@@ -82,8 +92,8 @@ class CameraActivity : AppCompatActivity() {
             override fun onSurfaceTextureUpdated(p0: SurfaceTexture) {
                 bitmap = textureView.bitmap!!
 
-                val imageSize = 320
-                val byteBuffer = ByteBuffer.allocateDirect(1 * imageSize * imageSize * 3)
+                val imageSize = 640
+                val byteBuffer = ByteBuffer.allocateDirect(1 * imageSize * imageSize *  3 * 4)
                 byteBuffer.order(ByteOrder.nativeOrder())
 
                 val intValues = IntArray(imageSize * imageSize)
@@ -99,7 +109,7 @@ class CameraActivity : AppCompatActivity() {
                     }
                 }
 
-                val inputFeature0 = TensorBuffer.createFixedSize(intArrayOf(1, 320, 320, 3), DataType.UINT8)
+                val inputFeature0 = TensorBuffer.createFixedSize(intArrayOf(1, 640, 640, 3), DataType.FLOAT32)
                 inputFeature0.loadBuffer(byteBuffer)
 
                 val outputs = model.process(inputFeature0)
@@ -108,10 +118,10 @@ class CameraActivity : AppCompatActivity() {
                 val num_detections = outputs.outputFeature2AsTensorBuffer.floatArray
                 val detection_classes  = outputs.outputFeature3AsTensorBuffer.floatArray
 
-//                Log.d("Tag", "Output Tensor 0: ${outputs.outputFeature0AsTensorBuffer.floatArray.joinToString(", ")}")
-//                Log.d("Tag", "Output Tensor 1: ${outputs.outputFeature1AsTensorBuffer.floatArray.joinToString(", ")}")
-//                Log.d("Tag", "Output Tensor 2: ${outputs.outputFeature2AsTensorBuffer.floatArray.joinToString(", ")}")
-//                Log.d("Tag", "Output Tensor 3: ${outputs.outputFeature3AsTensorBuffer.floatArray.joinToString(", ")}")
+                Log.d("Tag", "Output Tensor 0: ${outputs.outputFeature0AsTensorBuffer.floatArray.joinToString(", ")}")
+                Log.d("Tag", "Output Tensor 1: ${outputs.outputFeature1AsTensorBuffer.floatArray.joinToString(", ")}")
+                Log.d("Tag", "Output Tensor 2: ${outputs.outputFeature2AsTensorBuffer.floatArray.joinToString(", ")}")
+                Log.d("Tag", "Output Tensor 3: ${outputs.outputFeature3AsTensorBuffer.floatArray.joinToString(", ")}")
 
 
                 val focalLength = 20
@@ -148,6 +158,7 @@ class CameraActivity : AppCompatActivity() {
                     val distance = (knownWidth * focalLength) / (detection_boxes[x + 3] - detection_boxes[x + 1])
                     canvas.drawText(labels[detection_classes[index].toInt()] + " " + detection_scores[index], detection_boxes[x + 1] * w, detection_boxes[x] * h, paint)
                     canvas.drawText("Distance: " + "%.2f".format(distance / 10) + " cm", detection_boxes[x + 1] * w, detection_boxes[x] * h - 25, paint)
+                    isBarcodeDetected(labels[detection_classes[index].toInt()])
                 }
 
                 imageView.setImageBitmap(bitmap)
@@ -159,9 +170,34 @@ class CameraActivity : AppCompatActivity() {
         cameraManager = getSystemService(Context.CAMERA_SERVICE) as CameraManager
     }
 
+    override fun onInit(status: Int) {
+        if (status == TextToSpeech.SUCCESS) {
+            val result = tts?.setLanguage(Locale.US)
+            if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
+                Log.e("TTS", "The Language not supported!")
+            }
+        } else {
+            Log.e("TTS", "Initialization failed")
+        }
+    }
+
+    private fun speakText(text: String) {
+        tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, null)
+    }
+
+    private fun isBarcodeDetected(detected: String) {
+        if (detected == "QR code") {
+            speakText("QR detected")
+            val intent = Intent(this, ScanningActivity::class.java)
+            startActivity(intent)
+        }
+    }
+
     override fun onDestroy() {
         super.onDestroy()
         model.close()
+        tts?.stop()
+        tts?.shutdown()
     }
 
     @SuppressLint("MissingPermission")
