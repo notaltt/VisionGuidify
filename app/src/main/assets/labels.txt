@@ -1,40 +1,16 @@
-table
-Pedestrian
-Bicycle
-Car
-Motorbike
-Bus
-Truck
-Traffic light
-Street sign
-Bench
-chair
-Trash can
-Tree
-Lamp Post
-Fire hydrant
-Mailbox
-Fence
-Gate
-Stairs
-Door
-Crosswalk
-Sidewalk
-Curb
-railings
-Wall
-pillars
-QR code
-Person
-Locker
-door
-Table
-windows
-Window
-wall
-person
-sofas
+car
+handrail
+Doors
+curb
+People
+1
+trash-bins
+motorbike
+qr_code
+crosswalk
 stairs
-bicycle
-trees
-dog
+Chair
+tree
+object
+Bicycle
+0

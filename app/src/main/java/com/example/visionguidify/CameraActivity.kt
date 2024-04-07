@@ -25,7 +25,6 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import com.example.visionguidify.ml.DetectQuant
-import com.example.visionguidify.ml.Model
 import org.tensorflow.lite.DataType
 import org.tensorflow.lite.support.common.FileUtil
 import org.tensorflow.lite.support.image.ImageProcessor
@@ -47,7 +46,7 @@ class CameraActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     lateinit var handler: Handler
     lateinit var cameraDevice: CameraDevice
     lateinit var bitmap: Bitmap
-    lateinit var model: Model
+    lateinit var model: DetectQuant
     lateinit var imageProcessor: ImageProcessor
     lateinit var button: Button
     private  var tts: TextToSpeech? = null
@@ -57,8 +56,8 @@ class CameraActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         setContentView(R.layout.activity_camera)
 
         labels = FileUtil.loadLabels(this, "labels.txt")
-        model = Model.newInstance(this)
-        imageProcessor = ImageProcessor.Builder().add(ResizeOp(640, 640, ResizeOp.ResizeMethod.BILINEAR)).build()
+        model = DetectQuant.newInstance(this)
+        imageProcessor = ImageProcessor.Builder().add(ResizeOp(320, 320, ResizeOp.ResizeMethod.BILINEAR)).build()
 
         val handlerThread = HandlerThread("videoThread")
         handlerThread.start()
@@ -92,8 +91,8 @@ class CameraActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             override fun onSurfaceTextureUpdated(p0: SurfaceTexture) {
                 bitmap = textureView.bitmap!!
 
-                val imageSize = 640
-                val byteBuffer = ByteBuffer.allocateDirect(1 * imageSize * imageSize *  3 * 4)
+                val imageSize = 320
+                val byteBuffer = ByteBuffer.allocateDirect(1 * imageSize * imageSize *  3)
                 byteBuffer.order(ByteOrder.nativeOrder())
 
                 val intValues = IntArray(imageSize * imageSize)
@@ -109,7 +108,7 @@ class CameraActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                     }
                 }
 
-                val inputFeature0 = TensorBuffer.createFixedSize(intArrayOf(1, 640, 640, 3), DataType.FLOAT32)
+                val inputFeature0 = TensorBuffer.createFixedSize(intArrayOf(1, 320, 320, 3), DataType.UINT8)
                 inputFeature0.loadBuffer(byteBuffer)
 
                 val outputs = model.process(inputFeature0)
