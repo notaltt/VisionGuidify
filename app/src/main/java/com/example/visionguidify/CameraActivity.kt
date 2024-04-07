@@ -185,7 +185,7 @@ class CameraActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     }
 
     private fun isBarcodeDetected(detected: String) {
-        if (detected == "QR code") {
+        if (detected == "qr_code") {
             speakText("QR detected")
             val intent = Intent(this, ScanningActivity::class.java)
             startActivity(intent)
