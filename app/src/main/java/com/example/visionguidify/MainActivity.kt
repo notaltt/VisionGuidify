@@ -53,7 +53,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun startCameraActivity() {
-        val intent = Intent(this, CameraActivity::class.java)
+        val intent = Intent(this, ScanningActivity::class.java)
         startActivity(intent)
         finish()
     }
