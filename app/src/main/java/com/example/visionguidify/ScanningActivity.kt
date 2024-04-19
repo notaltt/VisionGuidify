@@ -12,6 +12,7 @@ import android.speech.SpeechRecognizer
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import android.util.Log
+import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
 import com.google.zxing.integration.android.IntentIntegrator
@@ -24,6 +25,9 @@ class ScanningActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     private val RQ_SPEECH_RC = 102
     private var speechInputValue: String? = null
     private var isWaitingForInput: Boolean = false
+    lateinit var button: Button
+    private var qrCodeResult: String? = null
+    private lateinit var availableDirections: List<String>
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_scanning)
@@ -37,15 +41,20 @@ class ScanningActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         resultQR = findViewById(R.id.resultQR)
         titleQR = findViewById(R.id.typeQR)
         tts = TextToSpeech(this, this)
+        button = findViewById(R.id.speechButton)
+
+        button.setOnClickListener {
+            askSpeechInput()
+        }
     }
 
     @Deprecated("Deprecated in Java")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        isWaitingForInput = false
         if(requestCode == RQ_SPEECH_RC && resultCode == Activity.RESULT_OK){
             val result:ArrayList<String>? = data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
             speechInputValue = result?.get(0).toString().uppercase()
+            handleUserInput(qrCodeResult!!, speechInputValue)
         }
 
         val result = IntentIntegrator.parseActivityResult(requestCode, resultCode, data)
@@ -53,8 +62,6 @@ class ScanningActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             if (result.contents != null) {
                 resultQR.text = result.contents
                 checkBarcode(result.contents)
-                val cameraIntent = Intent(this@ScanningActivity, CameraActivity::class.java)
-                startActivity(cameraIntent)
             } else {
                 Log.e("QR Result", "No content found")
             }
@@ -78,6 +85,8 @@ class ScanningActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
     private fun checkBarcode(input: String) {
         val splitText = input.split(", ")
+        val cameraIntent = Intent(this@ScanningActivity, CameraActivity::class.java)
+        qrCodeResult = input
         if ("VisionGuidify" in splitText) {
             val infoIndex = splitText.indexOf("INFORMATION")
             val directionIndex = splitText.indexOf("DIRECTION")
@@ -89,15 +98,18 @@ class ScanningActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                 nextWords.forEach { word ->
                     speakText(word)
                 }
+
+                startActivity(cameraIntent)
+
             } else if (navIndex != -1 && navIndex + 1 < splitText.size) {
                 val qrLocation = splitText[navIndex + 1]
 
-                val availableDirections = extractDynamicStrings(input)
+                availableDirections = extractDynamicStrings(input)
 
                 speakText("NAVIGATION QR CODE DETECTED")
                 speakText("You are currently at $qrLocation")
                 speakText("Available directions are $availableDirections")
-                delayedSpeakText("Please, choose your direction.")
+                speakText("Please, choose your direction.")
 
             } else if (directionIndex != -1) {
                 val nextWords = splitText.subList(directionIndex + 1, minOf(directionIndex + 4, splitText.size))
@@ -105,6 +117,9 @@ class ScanningActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                 nextWords.forEach { word ->
                     speakText(word)
                 }
+
+                startActivity(cameraIntent)
+
             } else {
                 speakText("Invalid QR CODE")
             }
@@ -113,33 +128,27 @@ class ScanningActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         }
     }
 
-    private fun delayedSpeakText(text: String, callback: (() -> Unit)? = null) {
-        speakText(text)
-        Handler(Looper.getMainLooper()).postDelayed({
-            askSpeechInput()
-        }, 1000) // Delay for 1 second (adjust as needed)
-    }
-
-
-    private fun chooseDirection(input: String) {
-        if (speechInputValue != null) {
-            handleUserInput(input, speechInputValue!!)
-        } else {
-            // Handle case where speechInputValue is still null
-            askSpeechInput()
-        }
-    }
 
     private fun handleUserInput(input: String, speechInputValue: String?) {
         val choicedDirection = extractDirectionInstructions(input, speechInputValue!!)
-        speakText("You choose $speechInputValue, here is the instruction $choicedDirection")
+        val firstDirection = choicedDirection.firstOrNull()
+        if (firstDirection != null) {
+            speakText("You choose $speechInputValue, here is the instruction $choicedDirection")
+            speakText("Please go $firstDirection")
+
+            val navigationIntent = Intent(this@ScanningActivity, NavigationActivity::class.java)
+            navigationIntent.putExtra("direction", choicedDirection.joinToString(", "))
+            startActivity(navigationIntent)
+        } else {
+            speakText("You choose $speechInputValue, sorry I can't find it in the available directions.")
+        }
     }
+
 
 
     private fun askSpeechInput() {
         if(!SpeechRecognizer.isRecognitionAvailable(this)){
             Toast.makeText(this, "speech recognition is not available", Toast.LENGTH_SHORT).show()
-            isWaitingForInput = false
         }else{
             val i = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
             i.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
