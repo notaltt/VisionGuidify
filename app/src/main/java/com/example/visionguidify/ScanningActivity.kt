@@ -134,10 +134,11 @@ class ScanningActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         val firstDirection = choicedDirection.firstOrNull()
         if (firstDirection != null) {
             speakText("You choose $speechInputValue, here is the instruction $choicedDirection")
-            speakText("Please go $firstDirection")
+            speakText("To start, please go $firstDirection")
 
             val navigationIntent = Intent(this@ScanningActivity, NavigationActivity::class.java)
             navigationIntent.putExtra("direction", choicedDirection.joinToString(", "))
+            navigationIntent.putExtra("location", speechInputValue)
             startActivity(navigationIntent)
         } else {
             speakText("You choose $speechInputValue, sorry I can't find it in the available directions.")

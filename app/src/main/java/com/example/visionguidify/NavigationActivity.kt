@@ -16,7 +16,8 @@ class NavigationActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     private lateinit var list: TextView
     private var tts: TextToSpeech? = null
     private var directionList: String? = null
-    private var arrayList: ArrayList<String>? = null
+    private var locationNav: String? = null
+//    private var arrayList: ArrayList<String>? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -24,12 +25,14 @@ class NavigationActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
         list = findViewById(R.id.instructionList)
         directionList = intent.getStringExtra("direction")
+        locationNav = intent.getStringExtra("location")
+
         tts = TextToSpeech(this, this)
 
-        directionList?.let {
-            arrayList = ArrayList(it.split("\n"))
-            list.text = arrayList?.joinToString("\n")
-        }
+//        directionList?.let {
+//            arrayList = ArrayList(it.split("\n"))
+//            list.text = arrayList?.joinToString("\n")
+//        }
 
         startQRScanner()
     }
@@ -40,42 +43,31 @@ class NavigationActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         val result = IntentIntegrator.parseActivityResult(requestCode, resultCode, data)
         if (result != null) {
             if (result.contents != null) {
-                // Convert result.contents to ArrayList<String>
-                val resultStringList = arrayListOf(result.contents)
-                resultStringList.addAll(arrayList!!.subList(0, minOf(2, arrayList!!.size)))
+                val resultStringList = result.contents
+                val splitResult = resultStringList.split(", ")
+                val splitDirection = directionList?.split(", ")?.toMutableList()
+                splitDirection?.removeAt(0)
+                list.text = splitDirection.toString()
 
-                speakText("DIRECTION QR CODE DETECTED") // Speak the detection message
-
-                arrayList?.let {
-                    for (item in it) {
-                        if (resultStringList.contains(item)) {
-                            // Speak the scanned result
-                            if (tts != null && tts!!.isSpeaking) {
-                                tts!!.stop() // Stop speaking if already speaking
-                            }
-                            speakText(item)
-
-                            it.remove(item) // Remove the matched element from the list
-                            list.text = it.joinToString("\n") // Update the TextView with the updated list
-
-                            if (it.isEmpty()) {
-                                // Navigate back to CameraActivity when the list is empty
-                                val intent = Intent(this, CameraActivity::class.java)
-                                startActivity(intent)
-                            } else {
-                                // Continue scanning for QR codes
-                                startQRScanner()
-                            }
-                            break // Exit the loop after processing the match
-                        }
-                    }
-
-                    if (!it.isEmpty()) {
-                        // If no match found in the list, prompt for another scan
-                        speakText("QR CODE NOT RECOGNIZED")
-                        startQRScanner()
+                val removedValues = splitDirection?.let { directionList ->
+                    directionList.filter { direction ->
+                        splitResult.any { result -> result == direction }
+                    }.also { removedList ->
+                        splitDirection.removeAll { removedList.contains(it) }
                     }
                 }
+
+//                if (splitDirection != null) {
+//                    if (splitDirection.equals("[]")) {
+//                        val navigationIntent = Intent(this@NavigationActivity, CameraActivity::class.java)
+//                        startActivity(navigationIntent)
+//                    }else{
+//                        startQRScanner()
+//                    }
+//                }
+
+                speakText(removedValues.toString())
+
             } else {
                 Log.e("QR Result", "No content found")
             }
