@@ -57,26 +57,24 @@ class NavigationActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                     }
                 }
 
-//                if (splitDirection != null) {
-//                    if (splitDirection.equals("[]")) {
-//                        val navigationIntent = Intent(this@NavigationActivity, CameraActivity::class.java)
-//                        startActivity(navigationIntent)
-//                    }else{
-//                        startQRScanner()
-//                    }
-//                }
-
                 speakText(removedValues.toString())
+
+                if (splitDirection.isNullOrEmpty()) {
+                    startQRScanner("Look for INFORMATION QR Code")
+                    if (locationNav in splitResult) {
+                        speakText("You arrived at $locationNav")
+                        val intentCamera = Intent(this@NavigationActivity, CameraActivity::class.java)
+                        startActivity(intentCamera)
+                    }
+                } else {
+                    startQRScanner("Look for DIRECTION QR Code")
+                }
 
             } else {
                 Log.e("QR Result", "No content found")
             }
         }
     }
-
-
-
-
 
     override fun onInit(status: Int) {
         if (status == TextToSpeech.SUCCESS) {
@@ -93,11 +91,11 @@ class NavigationActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         tts?.speak(text, TextToSpeech.QUEUE_ADD, null, null)
     }
 
-    private fun startQRScanner() {
+    private fun startQRScanner(prompt: String = "Start QR Scan") {
         val integrator = IntentIntegrator(this)
         integrator.setOrientationLocked(false) // Allow both portrait and landscape scanning
         integrator.setBeepEnabled(false) // Disable beep sound when scanning
-        integrator.setPrompt("LOOK FOR DIRECTION QR CODE") // Set a prompt message for the scanner
+        integrator.setPrompt(prompt) // Set a prompt message for the scanner
         integrator.initiateScan() // Start QR code scanning
     }
 
