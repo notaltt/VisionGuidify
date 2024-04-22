@@ -1,1 +1,9 @@
-0
+Chair
+QRCode
+bicycle
+car
+crosswalk
+door
+person
+stair
+tree
