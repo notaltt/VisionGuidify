@@ -1,10 +1,10 @@
 package com.example.visionguidify
 
 import android.content.Context
-import android.content.Intent
 import android.graphics.Bitmap
+import android.hardware.camera2.CameraCharacteristics
+import android.hardware.camera2.CameraManager
 import android.os.SystemClock
-import com.example.visionguidify.BoundingBox
 import org.tensorflow.lite.DataType
 import org.tensorflow.lite.Interpreter
 import org.tensorflow.lite.support.common.FileUtil
@@ -27,6 +27,7 @@ class Detector(
 
     private var interpreter: Interpreter? = null
     private var labels = mutableListOf<String>()
+    private var focalLength: Float = 0f
 
     private var tensorWidth = 0
     private var tensorHeight = 0
@@ -45,6 +46,7 @@ class Detector(
 
         val inputShape = interpreter?.getInputTensor(0)?.shape() ?: return
         val outputShape = interpreter?.getOutputTensor(0)?.shape() ?: return
+        val cameraManager = context.getSystemService(Context.CAMERA_SERVICE) as CameraManager
 
         tensorWidth = inputShape[1]
         tensorHeight = inputShape[2]
@@ -54,6 +56,10 @@ class Detector(
         try {
             val inputStream: InputStream = context.assets.open(labelPath)
             val reader = BufferedReader(InputStreamReader(inputStream))
+
+            val cameraId = cameraManager.cameraIdList[0]
+            val characteristics = cameraManager.getCameraCharacteristics(cameraId)
+            focalLength = characteristics.get(CameraCharacteristics.LENS_INFO_AVAILABLE_FOCAL_LENGTHS)!![0]
 
             var line: String? = reader.readLine()
             while (line != null && line != "") {
@@ -141,7 +147,9 @@ class Detector(
                 val y1 = cy - (h/2F)
                 val x2 = cx + (w/2F)
                 val y2 = cy + (h/2F)
-                val distance = 2.0
+
+                val distance = calculateDistance(w, 15.0)
+
                 if (x1 < 0F || x1 > 1F) continue
                 if (y1 < 0F || y1 > 1F) continue
                 if (x2 < 0F || x2 > 1F) continue
@@ -151,7 +159,7 @@ class Detector(
                     BoundingBox(
                         x1 = x1, y1 = y1, x2 = x2, y2 = y2,
                         cx = cx, cy = cy, w = w, h = h,
-                        cnf = maxConf, cls = maxIdx, clsName = clsName, distance = x1
+                        cnf = maxConf, cls = maxIdx, clsName = clsName, distance = distance
                     )
                 )
             }
@@ -160,6 +168,16 @@ class Detector(
         if (boundingBoxes.isEmpty()) return null
 
         return applyNMS(boundingBoxes)
+    }
+
+
+    private fun calculateDistance(pixelWidth: Float, actualSizeInches: Double): Any {
+        val focalLengthMM = focalLength * 1000.0
+        val sensorWidthMM = 6.17
+
+        val pixelWidthMM = pixelWidth * sensorWidthMM / tensorWidth
+
+        return (focalLengthMM * actualSizeInches) / pixelWidthMM
     }
 
     private fun applyNMS(boxes: List<BoundingBox>) : MutableList<BoundingBox> {

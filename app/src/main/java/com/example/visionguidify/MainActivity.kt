@@ -5,6 +5,8 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Matrix
+import android.hardware.camera2.CameraCharacteristics
+import android.hardware.camera2.CameraManager
 import android.os.Bundle
 import android.speech.tts.TextToSpeech
 import android.util.Log
@@ -55,6 +57,7 @@ class MainActivity : AppCompatActivity(), Detector.DetectorListener, TextToSpeec
         }
 
         cameraExecutor = Executors.newSingleThreadExecutor()
+
     }
 
     private fun startCamera() {
@@ -69,7 +72,6 @@ class MainActivity : AppCompatActivity(), Detector.DetectorListener, TextToSpeec
         val intent = Intent(this@MainActivity, ScanningActivity::class.java)
         startActivity(intent)
     }
-
 
     private fun bindCameraUseCases() {
         val cameraProvider = cameraProvider ?: throw IllegalStateException("Camera initialization failed.")
@@ -187,8 +189,8 @@ class MainActivity : AppCompatActivity(), Detector.DetectorListener, TextToSpeec
                 invalidate()
 
                 if (label == "QRCode"){
-                    launchScanningActivity()
                     speakText("QR CODE DETECTED")
+                    launchScanningActivity()
                 }
             }
 

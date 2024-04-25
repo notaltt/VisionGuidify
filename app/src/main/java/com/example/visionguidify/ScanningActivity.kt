@@ -12,6 +12,7 @@ import android.speech.SpeechRecognizer
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import android.util.Log
+import android.view.KeyEvent
 import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
@@ -43,9 +44,18 @@ class ScanningActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         tts = TextToSpeech(this, this)
         button = findViewById(R.id.speechButton)
 
-        button.setOnClickListener {
+//        button.setOnClickListener {
+//            askSpeechInput()
+//        }
+    }
+
+    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
+        if (keyCode == KeyEvent.KEYCODE_VOLUME_UP && !isWaitingForInput) {
+            // Perform your action here
             askSpeechInput()
+            return true
         }
+        return super.onKeyDown(keyCode, event)
     }
 
     @Deprecated("Deprecated in Java")

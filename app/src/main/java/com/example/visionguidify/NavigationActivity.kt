@@ -93,10 +93,10 @@ class NavigationActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
     private fun startQRScanner(prompt: String = "Start QR Scan") {
         val integrator = IntentIntegrator(this)
-        integrator.setOrientationLocked(false) // Allow both portrait and landscape scanning
-        integrator.setBeepEnabled(false) // Disable beep sound when scanning
-        integrator.setPrompt(prompt) // Set a prompt message for the scanner
-        integrator.initiateScan() // Start QR code scanning
+        integrator.setOrientationLocked(false)
+        integrator.setBeepEnabled(false)
+        integrator.setPrompt(prompt)
+        integrator.initiateScan()
     }
 
     override fun onDestroy() {
