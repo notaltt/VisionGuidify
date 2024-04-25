@@ -1,6 +1,7 @@
 package com.example.visionguidify
 
 import android.content.Context
+import android.content.Intent
 import android.graphics.Bitmap
 import android.os.SystemClock
 import com.example.visionguidify.BoundingBox
@@ -101,7 +102,15 @@ class Detector(
             return
         }
 
-        detectorListener.onDetect(bestBoxes, inferenceTime)
+        var label: String? = null
+
+        for (box in bestBoxes) {
+            if (box.clsName == "QRCode") {
+                label = "QRCode"
+            }
+        }
+
+        detectorListener.onDetect(bestBoxes, inferenceTime, label)
     }
 
     private fun bestBox(array: FloatArray) : List<BoundingBox>? {
@@ -132,6 +141,7 @@ class Detector(
                 val y1 = cy - (h/2F)
                 val x2 = cx + (w/2F)
                 val y2 = cy + (h/2F)
+                val distance = 2.0
                 if (x1 < 0F || x1 > 1F) continue
                 if (y1 < 0F || y1 > 1F) continue
                 if (x2 < 0F || x2 > 1F) continue
@@ -141,7 +151,7 @@ class Detector(
                     BoundingBox(
                         x1 = x1, y1 = y1, x2 = x2, y2 = y2,
                         cx = cx, cy = cy, w = w, h = h,
-                        cnf = maxConf, cls = maxIdx, clsName = clsName
+                        cnf = maxConf, cls = maxIdx, clsName = clsName, distance = x1
                     )
                 )
             }
@@ -187,7 +197,7 @@ class Detector(
 
     interface DetectorListener {
         fun onEmptyDetect()
-        fun onDetect(boundingBoxes: List<BoundingBox>, inferenceTime: Long)
+        fun onDetect(boundingBoxes: List<BoundingBox>, inferenceTime: Long, label: String?)
     }
 
     companion object {

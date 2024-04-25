@@ -1,10 +1,12 @@
 package com.example.visionguidify
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Matrix
 import android.os.Bundle
+import android.speech.tts.TextToSpeech
 import android.util.Log
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -21,12 +23,11 @@ import com.example.visionguidify.Constants.LABELS_PATH
 import com.example.visionguidify.Constants.MODEL_PATH
 import com.example.visionguidify.databinding.ActivityMainBinding
 import com.example.visionguidify.Detector
+import java.util.Locale
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
-
-
-class MainActivity : AppCompatActivity(), Detector.DetectorListener {
+class MainActivity : AppCompatActivity(), Detector.DetectorListener, TextToSpeech.OnInitListener {
     private lateinit var binding: ActivityMainBinding
     private val isFrontCamera = false
 
@@ -35,6 +36,7 @@ class MainActivity : AppCompatActivity(), Detector.DetectorListener {
     private var camera: Camera? = null
     private var cameraProvider: ProcessCameraProvider? = null
     private lateinit var detector: Detector
+    private var tts: TextToSpeech? = null
 
     private lateinit var cameraExecutor: ExecutorService
 
@@ -62,6 +64,12 @@ class MainActivity : AppCompatActivity(), Detector.DetectorListener {
             bindCameraUseCases()
         }, ContextCompat.getMainExecutor(this))
     }
+
+    private fun launchScanningActivity() {
+        val intent = Intent(this@MainActivity, ScanningActivity::class.java)
+        startActivity(intent)
+    }
+
 
     private fun bindCameraUseCases() {
         val cameraProvider = cameraProvider ?: throw IllegalStateException("Camera initialization failed.")
@@ -137,8 +145,10 @@ class MainActivity : AppCompatActivity(), Detector.DetectorListener {
     }
 
     private val requestPermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestMultiplePermissions()) {
-        if (it[Manifest.permission.CAMERA] == true) { startCamera() }
+        ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
+        if (permissions.all { it.value }) {
+            startCamera()
+        }
     }
 
     override fun onDestroy() {
@@ -160,7 +170,8 @@ class MainActivity : AppCompatActivity(), Detector.DetectorListener {
         private const val TAG = "Camera"
         private const val REQUEST_CODE_PERMISSIONS = 10
         private val REQUIRED_PERMISSIONS = mutableListOf (
-            Manifest.permission.CAMERA
+            Manifest.permission.CAMERA,
+            Manifest.permission.RECORD_AUDIO
         ).toTypedArray()
     }
 
@@ -168,13 +179,34 @@ class MainActivity : AppCompatActivity(), Detector.DetectorListener {
         binding.overlay.invalidate()
     }
 
-    override fun onDetect(boundingBoxes: List<BoundingBox>, inferenceTime: Long) {
+    override fun onDetect(boundingBoxes: List<BoundingBox>, inferenceTime: Long, label: String?) {
         runOnUiThread {
             binding.inferenceTime.text = "${inferenceTime}ms"
             binding.overlay.apply {
                 setResults(boundingBoxes)
                 invalidate()
+
+                if (label == "QRCode"){
+                    launchScanningActivity()
+                    speakText("QR CODE DETECTED")
+                }
             }
+
         }
+    }
+
+    override fun onInit(status: Int) {
+        if (status == TextToSpeech.SUCCESS) {
+            val result = tts?.setLanguage(Locale.US)
+            if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
+                Log.e("TTS", "The Language not supported!")
+            }
+        } else {
+            Log.e("TTS", "Initialization failed")
+        }
+    }
+
+    private fun speakText(text: String) {
+        tts?.speak(text, TextToSpeech.QUEUE_ADD, null, null)
     }
 }

@@ -9,7 +9,7 @@ android {
 
     defaultConfig {
         applicationId = "com.example.visionguidify"
-        minSdk = 21
+        minSdk = 24
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
@@ -57,5 +57,7 @@ dependencies {
     implementation("org.tensorflow:tensorflow-lite:2.14.0")
     implementation("org.tensorflow:tensorflow-lite-support:0.4.4")
 
-    implementation("com.google.zxing:core:3.4.1")
+    implementation("com.google.zxing:core:3.5.2")
+    implementation("com.journeyapps:zxing-android-embedded:4.2.0")
+
 }
