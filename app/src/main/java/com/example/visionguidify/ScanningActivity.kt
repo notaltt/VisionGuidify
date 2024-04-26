@@ -34,11 +34,7 @@ class ScanningActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         setContentView(R.layout.activity_scanning)
 
         // Initialize QR code scanner
-        val integrator = IntentIntegrator(this)
-        integrator.setOrientationLocked(false) // Allow both portrait and landscape scanning
-        integrator.setBeepEnabled(false) // Disable beep sound when scanning
-        integrator.setPrompt("Scan QR code") // Set a prompt message for the scanner
-        integrator.initiateScan() // Start QR code scanning
+        startScanning()
         resultQR = findViewById(R.id.resultQR)
         titleQR = findViewById(R.id.typeQR)
         tts = TextToSpeech(this, this)
@@ -47,6 +43,14 @@ class ScanningActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 //        button.setOnClickListener {
 //            askSpeechInput()
 //        }
+    }
+
+    private fun startScanning() {
+        val integrator = IntentIntegrator(this)
+        integrator.setOrientationLocked(false) // Allow both portrait and landscape scanning
+        integrator.setBeepEnabled(false) // Disable beep sound when scanning
+        integrator.setPrompt("Scan QR code") // Set a prompt message for the scanner
+        integrator.initiateScan() // Start QR code scanning
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
@@ -132,9 +136,11 @@ class ScanningActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 
             } else {
                 speakText("Invalid QR CODE")
+                startScanning()
             }
         } else {
             speakText("UNKNOWN QR CODE")
+            startScanning()
         }
     }
 

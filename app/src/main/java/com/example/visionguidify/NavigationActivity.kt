@@ -49,27 +49,24 @@ class NavigationActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                 splitDirection?.removeAt(0)
                 list.text = splitDirection.toString()
 
-                val removedValues = splitDirection?.let { directionList ->
-                    directionList.filter { direction ->
+                while (splitDirection?.isNotEmpty() == true) {
+                    val removedValues = splitDirection.filter { direction ->
                         splitResult.any { result -> result == direction }
-                    }.also { removedList ->
-                        splitDirection.removeAll { removedList.contains(it) }
+                    }
+                    speakText(removedValues.toString())
+                    splitDirection.removeAll(removedValues)
+
+                    if (splitDirection.isEmpty()) {
+                        startQRScanner("Look for INFORMATION QR Code")
+                        if (locationNav in splitResult) {
+                            speakText("You arrived at $locationNav")
+                            val intentCamera = Intent(this@NavigationActivity, MainActivity::class.java)
+                            startActivity(intentCamera)
+                        }
+                    } else {
+                        startQRScanner("Look for DIRECTION QR Code")
                     }
                 }
-
-                speakText(removedValues.toString())
-
-                if (splitDirection.isNullOrEmpty()) {
-                    startQRScanner("Look for INFORMATION QR Code")
-                    if (locationNav in splitResult) {
-                        speakText("You arrived at $locationNav")
-                        val intentCamera = Intent(this@NavigationActivity, MainActivity::class.java)
-                        startActivity(intentCamera)
-                    }
-                } else {
-                    startQRScanner("Look for DIRECTION QR Code")
-                }
-
             } else {
                 Log.e("QR Result", "No content found")
             }

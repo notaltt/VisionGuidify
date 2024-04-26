@@ -28,6 +28,7 @@ class Detector(
     private var interpreter: Interpreter? = null
     private var labels = mutableListOf<String>()
     private var focalLength: Float = 0f
+    private var sensorWidthMM: Float = 0f
 
     private var tensorWidth = 0
     private var tensorHeight = 0
@@ -60,6 +61,8 @@ class Detector(
             val cameraId = cameraManager.cameraIdList[0]
             val characteristics = cameraManager.getCameraCharacteristics(cameraId)
             focalLength = characteristics.get(CameraCharacteristics.LENS_INFO_AVAILABLE_FOCAL_LENGTHS)!![0]
+            val sensorSize = characteristics.get(CameraCharacteristics.SENSOR_INFO_PHYSICAL_SIZE)
+            sensorWidthMM = sensorSize?.width ?: 0f
 
             var line: String? = reader.readLine()
             while (line != null && line != "") {
@@ -171,9 +174,8 @@ class Detector(
     }
 
 
-    private fun calculateDistance(pixelWidth: Float, actualSizeInches: Double): Any {
+    private fun calculateDistance(pixelWidth: Float, actualSizeInches: Double): Double {
         val focalLengthMM = focalLength * 1000.0
-        val sensorWidthMM = 6.17
 
         val pixelWidthMM = pixelWidth * sensorWidthMM / tensorWidth
 
