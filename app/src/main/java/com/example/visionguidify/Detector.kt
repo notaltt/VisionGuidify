@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraManager
 import android.os.SystemClock
+import android.util.Log
 import org.tensorflow.lite.DataType
 import org.tensorflow.lite.Interpreter
 import org.tensorflow.lite.support.common.FileUtil
@@ -17,23 +18,32 @@ import java.io.BufferedReader
 import java.io.IOException
 import java.io.InputStream
 import java.io.InputStreamReader
+import java.util.Locale
+import kotlin.math.abs
 
 class Detector(
     private val context: Context,
     private val modelPath: String,
     private val labelPath: String,
-    private val detectorListener: DetectorListener
+    private val detectorListener: DetectorListener,
+    private val nearThreshold: Float = 0.5F,
 ) {
 
     private var interpreter: Interpreter? = null
     private var labels = mutableListOf<String>()
     private var focalLength: Float = 0f
     private var sensorWidthMM: Float = 0f
+    private var threshold: String = ""
+
 
     private var tensorWidth = 0
     private var tensorHeight = 0
     private var numChannel = 0
     private var numElements = 0
+
+    val screenWidth = 1F
+    val screenCenter = screenWidth / 2
+    val distance = 0
 
     private val imageProcessor = ImageProcessor.Builder()
         .add(NormalizeOp(INPUT_MEAN, INPUT_STANDARD_DEVIATION))
@@ -82,6 +92,14 @@ class Detector(
         interpreter = null
     }
 
+    private fun categorizeDistance(box: BoundingBox): String {
+        val boxWidth = box.x2 - box.x1
+        return when {
+            boxWidth >= nearThreshold -> "Near"
+            else -> "Far"
+        }
+    }
+
     fun detect(frame: Bitmap) {
         interpreter ?: return
         if (tensorWidth == 0) return
@@ -114,9 +132,9 @@ class Detector(
         var label: String? = null
 
         for (box in bestBoxes) {
-            if (box.clsName == "QRCode") {
-                label = "QRCode"
-            }
+            label = box.clsName
+            val distanceCategory = categorizeDistance(box)
+            threshold = distanceCategory
         }
 
         detectorListener.onDetect(bestBoxes, inferenceTime, label)
@@ -151,18 +169,20 @@ class Detector(
                 val x2 = cx + (w/2F)
                 val y2 = cy + (h/2F)
 
-                val distance = calculateDistance(w, 15.0)
-
                 if (x1 < 0F || x1 > 1F) continue
                 if (y1 < 0F || y1 > 1F) continue
                 if (x2 < 0F || x2 > 1F) continue
                 if (y2 < 0F || y2 > 1F) continue
 
+                val objectCenter = (x1 + x2) / 2
+                val side = if (objectCenter < screenCenter) "Left" else "Right"
+
                 boundingBoxes.add(
                     BoundingBox(
                         x1 = x1, y1 = y1, x2 = x2, y2 = y2,
                         cx = cx, cy = cy, w = w, h = h,
-                        cnf = maxConf, cls = maxIdx, clsName = clsName, distance = distance
+                        cnf = maxConf, cls = maxIdx, clsName = clsName,
+                        side = side, threshold = threshold
                     )
                 )
             }
@@ -174,12 +194,22 @@ class Detector(
     }
 
 
-    private fun calculateDistance(pixelWidth: Float, actualSizeInches: Double): Double {
+    private fun calculateDistance(pixelWidth: Float, label: String): String {
         val focalLengthMM = focalLength * 1000.0
+        val actualSizeInches = getActualSize(label)
 
         val pixelWidthMM = pixelWidth * sensorWidthMM / tensorWidth
 
-        return (focalLengthMM * actualSizeInches) / pixelWidthMM
+        val distance = (focalLengthMM * actualSizeInches) / pixelWidthMM
+        return "%.2f".format(Locale.US, distance)
+    }
+
+
+    private fun getActualSize(label: String): Double {
+        val numberPattern = Regex("""\d+\.\d+""")
+
+        val matchResult = numberPattern.find(label)
+        return matchResult?.value?.toDoubleOrNull() ?: 0.0
     }
 
     private fun applyNMS(boxes: List<BoundingBox>) : MutableList<BoundingBox> {

@@ -40,12 +40,17 @@ class MainActivity : AppCompatActivity(), Detector.DetectorListener, TextToSpeec
     private lateinit var detector: Detector
     private var tts: TextToSpeech? = null
 
+    private var lastDetectionTime = 0L
+    private val cooldownDuration = 3000L
+
     private lateinit var cameraExecutor: ExecutorService
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        tts = TextToSpeech(this, this)
 
         detector = Detector(baseContext, MODEL_PATH, LABELS_PATH, this)
         detector.setup()
@@ -69,6 +74,7 @@ class MainActivity : AppCompatActivity(), Detector.DetectorListener, TextToSpeec
     }
 
     private fun launchScanningActivity() {
+        speakText("QR CODE DETECTED")
         val intent = Intent(this@MainActivity, ScanningActivity::class.java)
         startActivity(intent)
     }
@@ -187,13 +193,11 @@ class MainActivity : AppCompatActivity(), Detector.DetectorListener, TextToSpeec
             binding.overlay.apply {
                 setResults(boundingBoxes)
                 invalidate()
-
-                if (label == "QRCode"){
-                    speakText("QR CODE DETECTED")
-                    launchScanningActivity()
-                }
             }
-
+            if (label == "QRCode" && System.currentTimeMillis() - lastDetectionTime > cooldownDuration) {
+                lastDetectionTime = System.currentTimeMillis()
+                launchScanningActivity()
+            }
         }
     }
 

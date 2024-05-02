@@ -49,24 +49,32 @@ class NavigationActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                 splitDirection?.removeAt(0)
                 list.text = splitDirection.toString()
 
-                while (splitDirection?.isNotEmpty() == true) {
-                    val removedValues = splitDirection.filter { direction ->
-                        splitResult.any { result -> result == direction }
-                    }
-                    speakText(removedValues.toString())
-                    splitDirection.removeAll(removedValues)
-
-                    if (splitDirection.isEmpty()) {
-                        startQRScanner("Look for INFORMATION QR Code")
-                        if (locationNav in splitResult) {
-                            speakText("You arrived at $locationNav")
-                            val intentCamera = Intent(this@NavigationActivity, MainActivity::class.java)
-                            startActivity(intentCamera)
-                        }
-                    } else {
-                        startQRScanner("Look for DIRECTION QR Code")
+                for (item in splitResult) {
+                    if (splitDirection?.contains(item) == true) {
+                        splitDirection.remove(item)
                     }
                 }
+
+                speakText(splitDirection.toString())
+
+//                while (splitDirection?.isNotEmpty() == true) {
+//                    val removedValues = splitDirection.filter { direction ->
+//                        splitResult.any { result -> result == direction }
+//                    }
+//                    speakText(removedValues.toString())
+//                    splitDirection.removeAll(removedValues)
+//
+//                    if (splitDirection.isEmpty()) {
+//                        startQRScanner("Look for INFORMATION QR Code")
+//                        if (locationNav in splitResult) {
+//                            speakText("You arrived at $locationNav")
+//                            val intentCamera = Intent(this@NavigationActivity, MainActivity::class.java)
+//                            startActivity(intentCamera)
+//                        }
+//                    } else {
+//                        startQRScanner("Look for DIRECTION QR Code")
+//                    }
+//                }
             } else {
                 Log.e("QR Result", "No content found")
             }
