@@ -20,7 +20,7 @@ import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import com.example.bluetooth.BluetoothManager
+import com.example.visionguidify.BluetoothManager
 import com.example.visionguidify.BoundingBox
 import com.example.visionguidify.Constants.LABELS_PATH
 import com.example.visionguidify.Constants.MODEL_PATH
@@ -45,12 +45,16 @@ class MainActivity : AppCompatActivity(), Detector.DetectorListener, TextToSpeec
     private val cooldownDuration = 3000L
 
     private lateinit var cameraExecutor: ExecutorService
-    val bluetoothManager = BluetoothManager(this)
+    private lateinit var bluetoothManager: BluetoothManager<Any?>
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        // Initialize BluetoothManager after setContentView
+        bluetoothManager = BluetoothManager(this)
 
         tts = TextToSpeech(this, this)
 
@@ -64,7 +68,6 @@ class MainActivity : AppCompatActivity(), Detector.DetectorListener, TextToSpeec
         }
 
         cameraExecutor = Executors.newSingleThreadExecutor()
-
     }
 
     private fun startCamera() {

@@ -1,4 +1,4 @@
-package com.example.bluetooth
+package com.example.visionguidify
 
 import android.Manifest
 import android.app.Activity
@@ -7,7 +7,6 @@ import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothSocket
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.os.Message
@@ -18,8 +17,12 @@ import java.io.IOException
 import java.io.InputStream
 import java.util.UUID
 
-class BluetoothManager(private val activity: AppCompatActivity) {
+class BluetoothManager<T>(private val activity: AppCompatActivity) {
+    interface BluetoothMessageListener {
+        fun onBluetoothMessageReceived(message: String)
+    }
 
+    private var messageListener: BluetoothMessageListener? = null
     private lateinit var bluetoothAdapter: BluetoothAdapter
     private var bluetoothSocket: BluetoothSocket? = null
     private lateinit var connectedThread: ConnectedThread
@@ -32,6 +35,23 @@ class BluetoothManager(private val activity: AppCompatActivity) {
     }
 
     private fun initBluetooth() {
+        // Check Bluetooth permissions
+        if (ActivityCompat.checkSelfPermission(
+                activity,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            // Permission not granted, request it
+            ActivityCompat.requestPermissions(
+                activity,
+                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
+                REQUEST_FINE_LOCATION_PERMISSION
+            )
+            // Don't proceed with Bluetooth initialization here, wait for permission result
+            return
+        }
+
+        // Bluetooth permissions granted, proceed with Bluetooth initialization
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
 
         if (!bluetoothAdapter.isEnabled) {
@@ -50,11 +70,19 @@ class BluetoothManager(private val activity: AppCompatActivity) {
                         val readBuffer = msg.obj as ByteArray
                         val messageBT = String(readBuffer, 0, msg.arg1)
                         Log.d(TAG, "Message received from Bluetooth device: $messageBT")
+
+                        // Notify the listener when a message is received
+                        messageListener?.onBluetoothMessageReceived(messageBT)
                     }
                 }
             }
         }
     }
+
+    fun setMessageListener(listener: BluetoothMessageListener) {
+        messageListener = listener
+    }
+
 
     fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         when (requestCode) {
@@ -117,10 +145,11 @@ class BluetoothManager(private val activity: AppCompatActivity) {
             try {
                 // Check if Bluetooth permissions are granted
                 if (hasBluetoothPermissions()) {
+                    Log.d(TAG, "Attempting to create Bluetooth socket...")
                     bluetoothSocket = device.createRfcommSocketToServiceRecord(MY_UUID)
                     Log.d(TAG, "Bluetooth socket created")
 
-                    // Connect to the remote device through the socket
+                    Log.d(TAG, "Attempting to connect to the socket...")
                     bluetoothSocket?.connect()
                     Log.d(TAG, "Socket connected")
 
@@ -131,7 +160,6 @@ class BluetoothManager(private val activity: AppCompatActivity) {
                 } else {
                     Log.e(TAG, "Bluetooth permissions not granted")
                 }
-
             } catch (e: IOException) {
                 try {
                     bluetoothSocket?.close()
@@ -139,9 +167,10 @@ class BluetoothManager(private val activity: AppCompatActivity) {
                     Log.e(TAG, "Could not close the client socket", closeException)
                 }
                 Log.e(TAG, "IOException occurred: ${e.message}")
+            } catch (se: SecurityException) {
+                Log.e(TAG, "SecurityException occurred: ${se.message}")
             }
         }
-
         // Check if Bluetooth permissions are granted
         private fun hasBluetoothPermissions(): Boolean {
             return ActivityCompat.checkSelfPermission(

@@ -19,7 +19,7 @@ import android.widget.Toast
 import com.google.zxing.integration.android.IntentIntegrator
 import java.util.Locale
 
-class ScanningActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
+class ScanningActivity : AppCompatActivity(), TextToSpeech.OnInitListener, BluetoothManager.BluetoothMessageListener {
     lateinit var resultQR: TextView
     lateinit var titleQR: TextView
     private var tts: TextToSpeech? = null
@@ -29,9 +29,14 @@ class ScanningActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     lateinit var button: Button
     private var qrCodeResult: String? = null
     private lateinit var availableDirections: List<String>
+    private lateinit var bluetoothManager: BluetoothManager<Any?> // Add this line
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_scanning)
+
+        // Initialize BluetoothManager
+        bluetoothManager = BluetoothManager(this)
 
         // Initialize QR code scanner
         startScanning()
@@ -39,10 +44,12 @@ class ScanningActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         titleQR = findViewById(R.id.typeQR)
         tts = TextToSpeech(this, this)
         button = findViewById(R.id.speechButton)
+    }
 
-//        button.setOnClickListener {
-//            askSpeechInput()
-//        }
+    override fun onBluetoothMessageReceived(message: String) {
+        if (message.trim() == "OPEN") {
+            askSpeechInput()
+        }
     }
 
     private fun startScanning() {
@@ -53,14 +60,14 @@ class ScanningActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         integrator.initiateScan() // Start QR code scanning
     }
 
-    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
-        if (keyCode == KeyEvent.KEYCODE_VOLUME_UP && !isWaitingForInput) {
-            // Perform your action here
-            askSpeechInput()
-            return true
-        }
-        return super.onKeyDown(keyCode, event)
-    }
+//    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
+//        if (keyCode == KeyEvent.KEYCODE_VOLUME_UP && !isWaitingForInput) {
+//            // Perform your action here
+//            askSpeechInput()
+//            return true
+//        }
+//        return super.onKeyDown(keyCode, event)
+//    }
 
     @Deprecated("Deprecated in Java")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
