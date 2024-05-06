@@ -59,6 +59,7 @@ class ScanningActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Bluet
         if (isQRCodeDetected) {
             // Handle Bluetooth messages only after QR code detection
             if (message.trim() == "OPEN") {
+                speakText("MICROPHONE IS OPEN")
                 askSpeechInput()
             }
         } else {
@@ -189,15 +190,26 @@ class ScanningActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Bluet
 
 
     private fun handleUserInput(input: String, speechInputValue: String?) {
-        val choicedDirection = extractDirectionInstructions(input, speechInputValue!!)
+
+        var commonValue: String = ""
+
+        speechInputValue?.split("\\s+".toRegex())?.forEach { word ->
+            if (word in availableDirections) {
+                commonValue = word
+                return@forEach
+            }
+        }
+
+        val choicedDirection = extractDirectionInstructions(input, commonValue)
         val firstDirection = choicedDirection.firstOrNull()
+
         if (firstDirection != null) {
-            speakText("You choose $speechInputValue, here is the instruction $choicedDirection")
+            speakText("You choose $commonValue, here is the instruction $choicedDirection")
             speakText("To start, please go $firstDirection")
 
             val navigationIntent = Intent(this@ScanningActivity, NavigationActivity::class.java)
             navigationIntent.putExtra("direction", choicedDirection.joinToString(", "))
-            navigationIntent.putExtra("location", speechInputValue)
+            navigationIntent.putExtra("location", commonValue)
             startActivity(navigationIntent)
         } else {
             speakText("You choose $speechInputValue, sorry I can't find it in the available directions.")

@@ -61,14 +61,15 @@ class NavigationActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                     if (splitDirection.isEmpty()) {
                         speakText("YOU ARE NEAR $locationNav, LOOK FOR INFORMATION QR CODE")
                         startQRScanner("LOOK FOR INFORMATION QR CODE")
-                        if(thirdElement == locationNav) {
-                            speakText("YOU ARRIVED AT $locationNav")
-                            val intentCamera = Intent(this@NavigationActivity, MainActivity::class.java)
-                            startActivity(intentCamera)
-                        }else{
-                            speakText(thirdElement)
-                        }
                     }
+                }
+
+                if(thirdElement == locationNav) {
+                    speakText("YOU ARRIVED AT $locationNav")
+                    val intentCamera = Intent(this@NavigationActivity, MainActivity::class.java)
+                    startActivity(intentCamera)
+                }else{
+                    speakText(thirdElement)
                 }
 
             //                while (splitDirection?.isNotEmpty() == true) {
