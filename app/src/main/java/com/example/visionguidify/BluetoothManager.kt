@@ -22,6 +22,10 @@ class BluetoothManager<T>(private val activity: AppCompatActivity) {
         fun onBluetoothMessageReceived(message: String)
     }
 
+    fun isBluetoothConnected(): Boolean {
+        return bluetoothSocket != null && bluetoothSocket!!.isConnected
+    }
+
     private var messageListener: BluetoothMessageListener? = null
     private lateinit var bluetoothAdapter: BluetoothAdapter
     private var bluetoothSocket: BluetoothSocket? = null
@@ -112,7 +116,7 @@ class BluetoothManager<T>(private val activity: AppCompatActivity) {
         }
     }
 
-    private fun connectToDevice() {
+    public fun connectToDevice() {
         // Check Bluetooth permissions
         if (ActivityCompat.checkSelfPermission(
                 activity,
@@ -202,8 +206,9 @@ class BluetoothManager<T>(private val activity: AppCompatActivity) {
                     break
                 }
             }
+            // Close the input stream when the loop exits
+            inputStream.close()
         }
-
     }
 
     companion object {

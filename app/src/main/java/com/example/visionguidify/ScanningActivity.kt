@@ -7,6 +7,7 @@ import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.service.controls.ControlsProviderService.TAG
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import android.speech.tts.TextToSpeech
@@ -31,12 +32,15 @@ class ScanningActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Bluet
     private lateinit var availableDirections: List<String>
     private lateinit var bluetoothManager: BluetoothManager<Any?> // Add this line
 
+    private var isQRCodeDetected: Boolean = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_scanning)
 
         // Initialize BluetoothManager
         bluetoothManager = BluetoothManager(this)
+        bluetoothManager.setMessageListener(this)
 
         // Initialize QR code scanner
         startScanning()
@@ -47,33 +51,21 @@ class ScanningActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Bluet
     }
 
     override fun onBluetoothMessageReceived(message: String) {
-        if (message.trim() == "OPEN") {
-            askSpeechInput()
+        if (isQRCodeDetected) {
+            // Handle Bluetooth messages only after QR code detection
+            if (message.trim() == "OPEN") {
+                askSpeechInput()
+            }
+        } else {
+            // Optionally, you can queue the messages or ignore them until QR code detection
+            // Or you can handle them differently based on your app's requirements
         }
     }
 
-    private fun startScanning() {
-        val integrator = IntentIntegrator(this)
-        integrator.setOrientationLocked(false) // Allow both portrait and landscape scanning
-        integrator.setBeepEnabled(false) // Disable beep sound when scanning
-        integrator.setPrompt("Scan QR code") // Set a prompt message for the scanner
-        integrator.initiateScan() // Start QR code scanning
-    }
-
-//    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
-//        if (keyCode == KeyEvent.KEYCODE_VOLUME_UP && !isWaitingForInput) {
-//            // Perform your action here
-//            askSpeechInput()
-//            return true
-//        }
-//        return super.onKeyDown(keyCode, event)
-//    }
-
-    @Deprecated("Deprecated in Java")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        if(requestCode == RQ_SPEECH_RC && resultCode == Activity.RESULT_OK){
-            val result:ArrayList<String>? = data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
+        if (requestCode == RQ_SPEECH_RC && resultCode == Activity.RESULT_OK) {
+            val result: ArrayList<String>? = data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
             speechInputValue = result?.get(0).toString().uppercase()
             handleUserInput(qrCodeResult!!, speechInputValue)
         }
@@ -83,8 +75,33 @@ class ScanningActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Bluet
             if (result.contents != null) {
                 resultQR.text = result.contents
                 checkBarcode(result.contents)
+                // Set the flag to indicate QR code detection
+                isQRCodeDetected = true
             } else {
                 Log.e("QR Result", "No content found")
+            }
+        }
+    }
+
+    private fun startScanning() {
+        try {
+            val integrator = IntentIntegrator(this)
+            integrator.setOrientationLocked(false) // Allow both portrait and landscape scanning
+            integrator.setBeepEnabled(false) // Disable beep sound when scanning
+            integrator.setPrompt("Scan QR code") // Set a prompt message for the scanner
+            integrator.initiateScan() // Start QR code scanning
+        } catch (e: Exception) {
+            // Handle any exceptions that occur during QR code scanning
+            Log.e(TAG, "Error starting QR code scanning: ${e.message}")
+            Toast.makeText(this, "Error starting QR code scanning", Toast.LENGTH_SHORT).show()
+
+            // Handle Bluetooth disconnection or input stream issues
+            if (bluetoothManager.isBluetoothConnected()) {
+                Log.e(TAG, "Bluetooth connection is active")
+            } else {
+                Log.e(TAG, "Bluetooth connection is not active")
+                // You can attempt to reconnect to the Bluetooth device here if needed
+                // Example: bluetoothManager.connectToDevice()
             }
         }
     }
@@ -122,6 +139,8 @@ class ScanningActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Bluet
 
                 startActivity(cameraIntent)
 
+                bluetoothManager.connectToDevice()
+
             } else if (navIndex != -1 && navIndex + 1 < splitText.size) {
                 val qrLocation = splitText[navIndex + 1]
 
@@ -132,12 +151,17 @@ class ScanningActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Bluet
                 speakText("Available directions are $availableDirections")
                 speakText("Please, choose your direction.")
 
+                bluetoothManager.connectToDevice()
+
             } else if (directionIndex != -1) {
                 val nextWords = splitText.subList(directionIndex + 1, minOf(directionIndex + 4, splitText.size))
                 speakText("DIRECTION QR CODE DETECTED")
                 nextWords.forEach { word ->
                     speakText(word)
                 }
+
+                // Start Bluetooth connection after scanning valid QR code and initializing TTS
+                bluetoothManager.connectToDevice()
 
                 startActivity(cameraIntent)
 
