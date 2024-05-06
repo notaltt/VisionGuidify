@@ -17,7 +17,7 @@ import java.io.IOException
 import java.io.InputStream
 import java.util.UUID
 
-class BluetoothManager<T>(private val activity: AppCompatActivity) {
+class BluetoothManager<T>(private val activity: AppCompatActivity, private val connectionListener: BluetoothConnectionListener) {
     interface BluetoothMessageListener {
         fun onBluetoothMessageReceived(message: String)
     }
@@ -94,6 +94,7 @@ class BluetoothManager<T>(private val activity: AppCompatActivity) {
                 if (resultCode == Activity.RESULT_OK) {
                     // Bluetooth was enabled, proceed with connecting to the device
                     connectToDevice()
+                    connectionListener.onBluetoothConnected()
                 } else {
                     // Bluetooth was not enabled, handle this scenario
                     Log.e(TAG, "Bluetooth was not enabled")
@@ -161,6 +162,7 @@ class BluetoothManager<T>(private val activity: AppCompatActivity) {
                     connectedThread = ConnectedThread(bluetoothSocket!!)
                     connectedThread.start()
                     Log.d(TAG, "ConnectedThread started")
+
                 } else {
                     Log.e(TAG, "Bluetooth permissions not granted")
                 }
@@ -216,5 +218,9 @@ class BluetoothManager<T>(private val activity: AppCompatActivity) {
         private const val REQUEST_ENABLE_BT = 1
         const val MESSAGE_READ = 0
         private const val REQUEST_FINE_LOCATION_PERMISSION = 1001
+    }
+
+    interface BluetoothConnectionListener {
+        fun onBluetoothConnected()
     }
 }

@@ -33,13 +33,14 @@ class ScanningActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Bluet
     private lateinit var bluetoothManager: BluetoothManager<Any?> // Add this line
 
     private var isQRCodeDetected: Boolean = false
+    private val bluetoothListener = ScanningActivityBluetoothListener()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_scanning)
 
         // Initialize BluetoothManager
-        bluetoothManager = BluetoothManager(this)
+        bluetoothManager = BluetoothManager(this, bluetoothListener)
         bluetoothManager.setMessageListener(this)
 
         // Initialize QR code scanner
@@ -48,6 +49,10 @@ class ScanningActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Bluet
         titleQR = findViewById(R.id.typeQR)
         tts = TextToSpeech(this, this)
         button = findViewById(R.id.speechButton)
+
+        button.setOnClickListener {
+            askSpeechInput()
+        }
     }
 
     override fun onBluetoothMessageReceived(message: String) {
@@ -80,6 +85,13 @@ class ScanningActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Bluet
             } else {
                 Log.e("QR Result", "No content found")
             }
+        }
+    }
+
+    inner class ScanningActivityBluetoothListener : BluetoothManager.BluetoothConnectionListener {
+        override fun onBluetoothConnected() {
+            speakText("Bluetooth connected.")
+            // Add any additional logic you want to execute upon Bluetooth connection
         }
     }
 

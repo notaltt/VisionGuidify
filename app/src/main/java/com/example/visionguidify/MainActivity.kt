@@ -30,7 +30,7 @@ import java.util.Locale
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
-class MainActivity : AppCompatActivity(), Detector.DetectorListener, TextToSpeech.OnInitListener {
+class MainActivity : AppCompatActivity(), Detector.DetectorListener, TextToSpeech.OnInitListener, BluetoothManager.BluetoothConnectionListener {
     private lateinit var binding: ActivityMainBinding
     private val isFrontCamera = false
 
@@ -54,7 +54,7 @@ class MainActivity : AppCompatActivity(), Detector.DetectorListener, TextToSpeec
         setContentView(binding.root)
 
         // Initialize BluetoothManager after setContentView
-        bluetoothManager = BluetoothManager(this)
+        bluetoothManager = BluetoothManager(this, this)
 
         tts = TextToSpeech(this, this)
 
@@ -230,5 +230,9 @@ class MainActivity : AppCompatActivity(), Detector.DetectorListener, TextToSpeec
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         bluetoothManager.onRequestPermissionsResult(requestCode, permissions, grantResults)
+    }
+
+    override fun onBluetoothConnected() {
+        speakText("Bluetooth connected.")
     }
 }

@@ -194,16 +194,6 @@ class Detector(
     }
 
 
-    private fun calculateDistance(pixelWidth: Float, label: String): String {
-        val focalLengthMM = focalLength * 1000.0
-        val actualSizeInches = getActualSize(label)
-
-        val pixelWidthMM = pixelWidth * sensorWidthMM / tensorWidth
-
-        val distance = (focalLengthMM * actualSizeInches) / pixelWidthMM
-        return "%.2f".format(Locale.US, distance)
-    }
-
 
     private fun getActualSize(label: String): Double {
         val numberPattern = Regex("""\d+\.\d+""")

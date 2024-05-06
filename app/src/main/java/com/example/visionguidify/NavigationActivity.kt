@@ -45,6 +45,7 @@ class NavigationActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             if (result.contents != null) {
                 val resultStringList = result.contents
                 val splitResult = resultStringList.split(", ")
+                val thirdElement = splitResult[2]
                 val splitDirection = directionList?.split(", ")?.toMutableList()
                 splitDirection?.removeAt(0)
                 list.text = splitDirection.toString()
@@ -52,34 +53,48 @@ class NavigationActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                 for (item in splitResult) {
                     if (splitDirection?.contains(item) == true) {
                         splitDirection.remove(item)
+                        speakText(item)
                     }
                 }
 
-                speakText(splitDirection.toString())
+                if (splitDirection != null) {
+                    if (splitDirection.isEmpty()) {
+                        speakText("YOU ARE NEAR $locationNav, LOOK FOR INFORMATION QR CODE")
+                        startQRScanner("LOOK FOR INFORMATION QR CODE")
+                        if(thirdElement == locationNav) {
+                            speakText("YOU ARRIVED AT $locationNav")
+                            val intentCamera = Intent(this@NavigationActivity, MainActivity::class.java)
+                            startActivity(intentCamera)
+                        }else{
+                            speakText(thirdElement)
+                        }
+                    }
+                }
 
-//                while (splitDirection?.isNotEmpty() == true) {
-//                    val removedValues = splitDirection.filter { direction ->
-//                        splitResult.any { result -> result == direction }
-//                    }
-//                    speakText(removedValues.toString())
-//                    splitDirection.removeAll(removedValues)
-//
-//                    if (splitDirection.isEmpty()) {
-//                        startQRScanner("Look for INFORMATION QR Code")
-//                        if (locationNav in splitResult) {
-//                            speakText("You arrived at $locationNav")
-//                            val intentCamera = Intent(this@NavigationActivity, MainActivity::class.java)
-//                            startActivity(intentCamera)
-//                        }
-//                    } else {
-//                        startQRScanner("Look for DIRECTION QR Code")
-//                    }
-//                }
+            //                while (splitDirection?.isNotEmpty() == true) {
+            //                    val removedValues = splitDirection.filter { direction ->
+            //                        splitResult.any { result -> result == direction }
+            //                    }
+            //                    speakText(removedValues.toString())
+            //                    splitDirection.removeAll(removedValues)
+            //
+            //                    if (splitDirection.isEmpty()) {
+            //                        startQRScanner("Look for INFORMATION QR Code")
+            //                        if (locationNav in splitResult) {
+            //                            speakText("You arrived at $locationNav")
+            //                            val intentCamera = Intent(this@NavigationActivity, MainActivity::class.java)
+            //                            startActivity(intentCamera)
+            //                        }
+            //                    } else {
+            //                        startQRScanner("Look for DIRECTION QR Code")
+            //                    }
+            //                }
+
+                }
             } else {
                 Log.e("QR Result", "No content found")
             }
         }
-    }
 
     override fun onInit(status: Int) {
         if (status == TextToSpeech.SUCCESS) {

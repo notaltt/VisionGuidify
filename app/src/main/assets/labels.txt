@@ -7,3 +7,6 @@ door
 person
 stair
 tree
+dog
+trash-bins
+bus
