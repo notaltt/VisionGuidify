@@ -20,6 +20,7 @@ import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import com.example.bluetooth.BluetoothManager
 import com.example.visionguidify.BoundingBox
 import com.example.visionguidify.Constants.LABELS_PATH
 import com.example.visionguidify.Constants.MODEL_PATH
@@ -44,6 +45,7 @@ class MainActivity : AppCompatActivity(), Detector.DetectorListener, TextToSpeec
     private val cooldownDuration = 3000L
 
     private lateinit var cameraExecutor: ExecutorService
+    val bluetoothManager = BluetoothManager(this)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -214,5 +216,16 @@ class MainActivity : AppCompatActivity(), Detector.DetectorListener, TextToSpeec
 
     private fun speakText(text: String) {
         tts?.speak(text, TextToSpeech.QUEUE_ADD, null, null)
+    }
+
+    @Deprecated("Deprecated in Java")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        bluetoothManager.onActivityResult(requestCode, resultCode, data)
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        bluetoothManager.onRequestPermissionsResult(requestCode, permissions, grantResults)
     }
 }
