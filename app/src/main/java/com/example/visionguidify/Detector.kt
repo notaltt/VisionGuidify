@@ -44,6 +44,7 @@ class Detector(
     val screenWidth = 1F
     val screenCenter = screenWidth / 2
     val distance = 0
+    var side = ""
 
     private val imageProcessor = ImageProcessor.Builder()
         .add(NormalizeOp(INPUT_MEAN, INPUT_STANDARD_DEVIATION))
@@ -130,14 +131,16 @@ class Detector(
         }
 
         var label: String? = null
+        var sides: String = ""
 
         for (box in bestBoxes) {
             label = box.clsName
+            sides = box.side
             val distanceCategory = categorizeDistance(box)
             threshold = distanceCategory
         }
 
-        detectorListener.onDetect(bestBoxes, inferenceTime, label)
+        detectorListener.onDetect(bestBoxes, inferenceTime, label, threshold, sides)
     }
 
     private fun bestBox(array: FloatArray) : List<BoundingBox>? {
@@ -175,7 +178,7 @@ class Detector(
                 if (y2 < 0F || y2 > 1F) continue
 
                 val objectCenter = (x1 + x2) / 2
-                val side = if (objectCenter < screenCenter) "Left" else "Right"
+                side = if (objectCenter < screenCenter) "Left" else "Right"
 
                 boundingBoxes.add(
                     BoundingBox(
@@ -237,7 +240,7 @@ class Detector(
 
     interface DetectorListener {
         fun onEmptyDetect()
-        fun onDetect(boundingBoxes: List<BoundingBox>, inferenceTime: Long, label: String?)
+        fun onDetect(boundingBoxes: List<BoundingBox>, inferenceTime: Long, label: String?, threshold: String, side: String)
     }
 
     companion object {

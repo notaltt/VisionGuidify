@@ -8,6 +8,8 @@ import android.graphics.Matrix
 import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraManager
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.speech.tts.TextToSpeech
 import android.util.Log
 import androidx.activity.result.contract.ActivityResultContracts
@@ -76,6 +78,17 @@ class MainActivity : AppCompatActivity(), Detector.DetectorListener, TextToSpeec
             cameraProvider  = cameraProviderFuture.get()
             bindCameraUseCases()
         }, ContextCompat.getMainExecutor(this))
+    }
+
+    private val handler = Handler(Looper.getMainLooper()) {
+        when (it.what) {
+            MESSAGE_BLUETOOTH_CONNECTED -> {
+                // Call onBluetoothConnected when ConnectedThread starts
+                onBluetoothConnected()
+                true
+            }
+            else -> false
+        }
     }
 
     private fun launchScanningActivity() {
@@ -181,6 +194,7 @@ class MainActivity : AppCompatActivity(), Detector.DetectorListener, TextToSpeec
 
     companion object {
         private const val TAG = "Camera"
+        private const val MESSAGE_BLUETOOTH_CONNECTED = 1
         private const val REQUEST_CODE_PERMISSIONS = 10
         private val REQUIRED_PERMISSIONS = mutableListOf (
             Manifest.permission.CAMERA,
@@ -192,19 +206,29 @@ class MainActivity : AppCompatActivity(), Detector.DetectorListener, TextToSpeec
         binding.overlay.invalidate()
     }
 
-    override fun onDetect(boundingBoxes: List<BoundingBox>, inferenceTime: Long, label: String?) {
+    override fun onDetect(boundingBoxes: List<BoundingBox>, inferenceTime: Long, label: String?, threshold: String, side: String) {
         runOnUiThread {
             binding.inferenceTime.text = "${inferenceTime}ms"
             binding.overlay.apply {
                 setResults(boundingBoxes)
                 invalidate()
             }
+
+            // Notify the user about near objects without delay
+            val nearObjects = boundingBoxes.filter { it.threshold == "Near" }
+            nearObjects.forEach { box ->
+                val message = "${box.clsName} is near, on your ${box.side}"
+                speakText(message)
+            }
+
             if (label == "QRCode" && System.currentTimeMillis() - lastDetectionTime > cooldownDuration) {
                 lastDetectionTime = System.currentTimeMillis()
                 launchScanningActivity()
             }
         }
     }
+
+
 
     override fun onInit(status: Int) {
         if (status == TextToSpeech.SUCCESS) {

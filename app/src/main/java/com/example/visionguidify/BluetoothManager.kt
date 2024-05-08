@@ -94,7 +94,6 @@ class BluetoothManager<T>(private val activity: AppCompatActivity, private val c
                 if (resultCode == Activity.RESULT_OK) {
                     // Bluetooth was enabled, proceed with connecting to the device
                     connectToDevice()
-                    connectionListener.onBluetoothConnected()
                 } else {
                     // Bluetooth was not enabled, handle this scenario
                     Log.e(TAG, "Bluetooth was not enabled")
@@ -145,7 +144,6 @@ class BluetoothManager<T>(private val activity: AppCompatActivity, private val c
 
     // Thread to connect to the Bluetooth device
     private inner class ConnectThread(private val device: BluetoothDevice) : Thread() {
-
         override fun run() {
             try {
                 // Check if Bluetooth permissions are granted
@@ -162,6 +160,8 @@ class BluetoothManager<T>(private val activity: AppCompatActivity, private val c
                     connectedThread = ConnectedThread(bluetoothSocket!!)
                     connectedThread.start()
                     Log.d(TAG, "ConnectedThread started")
+
+                    handler.sendEmptyMessage(MESSAGE_BLUETOOTH_CONNECTED)
 
                 } else {
                     Log.e(TAG, "Bluetooth permissions not granted")
@@ -218,6 +218,7 @@ class BluetoothManager<T>(private val activity: AppCompatActivity, private val c
         private const val REQUEST_ENABLE_BT = 1
         const val MESSAGE_READ = 0
         private const val REQUEST_FINE_LOCATION_PERMISSION = 1001
+        const val MESSAGE_BLUETOOTH_CONNECTED = 1
     }
 
     interface BluetoothConnectionListener {
