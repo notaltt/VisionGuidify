@@ -144,7 +144,6 @@ class Detector(
     }
 
     private fun bestBox(array: FloatArray) : List<BoundingBox>? {
-
         val boundingBoxes = mutableListOf<BoundingBox>()
 
         for (c in 0 until numElements) {
@@ -152,7 +151,7 @@ class Detector(
             var maxIdx = -1
             var j = 4
             var arrayIdx = c + numElements * j
-            while (j < numChannel){
+            while (j < numChannel) {
                 if (array[arrayIdx] > maxConf) {
                     maxConf = array[arrayIdx]
                     maxIdx = j - 4
@@ -167,18 +166,23 @@ class Detector(
                 val cy = array[c + numElements] // 1
                 val w = array[c + numElements * 2]
                 val h = array[c + numElements * 3]
-                val x1 = cx - (w/2F)
-                val y1 = cy - (h/2F)
-                val x2 = cx + (w/2F)
-                val y2 = cy + (h/2F)
+                val x1 = cx - (w / 2F)
+                val y1 = cy - (h / 2F)
+                val x2 = cx + (w / 2F)
+                val y2 = cy + (h / 2F)
 
                 if (x1 < 0F || x1 > 1F) continue
                 if (y1 < 0F || y1 > 1F) continue
                 if (x2 < 0F || x2 > 1F) continue
                 if (y2 < 0F || y2 > 1F) continue
 
+                val boxWidth = x2 - x1
                 val objectCenter = (x1 + x2) / 2
-                side = if (objectCenter < screenCenter) "Left" else "Right"
+                val side = when {
+                    boxWidth >= 0.8 * screenWidth -> "Front"
+                    objectCenter < screenCenter -> "Left"
+                    else -> "Right"
+                }
 
                 boundingBoxes.add(
                     BoundingBox(
@@ -195,6 +199,7 @@ class Detector(
 
         return applyNMS(boundingBoxes)
     }
+
 
 
 

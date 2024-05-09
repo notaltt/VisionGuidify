@@ -206,6 +206,10 @@ class MainActivity : AppCompatActivity(), Detector.DetectorListener, TextToSpeec
         binding.overlay.invalidate()
     }
 
+    // Define a handler and a flag to control the text-to-speech interval
+    private val handler1 = Handler(Looper.getMainLooper())
+    private var isTtsRunning = false
+
     override fun onDetect(boundingBoxes: List<BoundingBox>, inferenceTime: Long, label: String?, threshold: String, side: String) {
         runOnUiThread {
             binding.inferenceTime.text = "${inferenceTime}ms"
@@ -218,7 +222,7 @@ class MainActivity : AppCompatActivity(), Detector.DetectorListener, TextToSpeec
             val nearObjects = boundingBoxes.filter { it.threshold == "Near" }
             nearObjects.forEach { box ->
                 val message = "${box.clsName} is near, on your ${box.side}"
-                speakText(message)
+                startTtsWithInterval(message)
             }
 
             if (label == "QRCode" && System.currentTimeMillis() - lastDetectionTime > cooldownDuration) {
@@ -228,6 +232,16 @@ class MainActivity : AppCompatActivity(), Detector.DetectorListener, TextToSpeec
         }
     }
 
+    private fun startTtsWithInterval(message: String) {
+        if (!isTtsRunning) {
+            isTtsRunning = true
+            speakText(message)
+
+            handler1.postDelayed({
+                isTtsRunning = false
+            }, 10000) // 10-second interval
+        }
+    }
 
 
     override fun onInit(status: Int) {
