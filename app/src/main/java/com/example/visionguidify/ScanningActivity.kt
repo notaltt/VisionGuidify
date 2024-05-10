@@ -180,11 +180,13 @@ class ScanningActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Bluet
 
             } else {
                 speakText("Invalid QR CODE")
-                startScanning()
+                val intentCamera = Intent(this@ScanningActivity, MainActivity::class.java)
+                startActivity(intentCamera)
             }
         } else {
             speakText("UNKNOWN QR CODE")
-            startScanning()
+            val intentCamera = Intent(this@ScanningActivity, MainActivity::class.java)
+            startActivity(intentCamera)
         }
     }
 

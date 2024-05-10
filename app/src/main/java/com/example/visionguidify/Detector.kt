@@ -179,7 +179,8 @@ class Detector(
                 val boxWidth = x2 - x1
                 val objectCenter = (x1 + x2) / 2
                 val side = when {
-                    boxWidth >= 0.8 * screenWidth -> "Front"
+//                    boxWidth >= 0.8 * screenWidth -> "Front"
+                    objectCenter == screenCenter -> "Front"
                     objectCenter < screenCenter -> "Left"
                     else -> "Right"
                 }

@@ -1,9 +1,9 @@
 Chair
 QRCode
 bicycle
-bus
 car
 crosswalk
 door
 person
 stair
+tree

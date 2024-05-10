@@ -93,6 +93,7 @@ class MainActivity : AppCompatActivity(), Detector.DetectorListener, TextToSpeec
 
     private fun launchScanningActivity() {
         speakText("QR CODE DETECTED")
+        speakText("STOP TO SCAN THE QR CODE")
         val intent = Intent(this@MainActivity, ScanningActivity::class.java)
         startActivity(intent)
     }
@@ -225,7 +226,11 @@ class MainActivity : AppCompatActivity(), Detector.DetectorListener, TextToSpeec
                 startTtsWithInterval(message)
             }
 
-            if (label == "QRCode" && System.currentTimeMillis() - lastDetectionTime > cooldownDuration) {
+            if(label == "QRCode" && threshold == "Far"){
+                speakText("Detected a far QR Code, please walk a few steps to scan the QR Code.")
+            }
+
+            if (label == "QRCode" && System.currentTimeMillis() - lastDetectionTime > cooldownDuration && threshold == "Near") {
                 lastDetectionTime = System.currentTimeMillis()
                 launchScanningActivity()
             }
