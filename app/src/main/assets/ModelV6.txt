@@ -1,0 +1,7 @@
+Chair
+QRCode
+bus
+car
+door
+person
+stair
