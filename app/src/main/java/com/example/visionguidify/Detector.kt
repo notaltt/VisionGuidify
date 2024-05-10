@@ -26,7 +26,6 @@ class Detector(
     private val modelPath: String,
     private val labelPath: String,
     private val detectorListener: DetectorListener,
-    private val nearThreshold: Float = 0.5F,
 ) {
 
     private var interpreter: Interpreter? = null
@@ -93,7 +92,10 @@ class Detector(
         interpreter = null
     }
 
-    private fun categorizeDistance(box: BoundingBox): String {
+    private fun categorizeDistance(box: BoundingBox, label: String): String {
+        val nearThreshold: Float = if (label == "QRCode") 0.20F else 0.5F
+
+
         val boxWidth = box.x2 - box.x1
         return when {
             boxWidth >= nearThreshold -> "Near"
@@ -136,7 +138,7 @@ class Detector(
         for (box in bestBoxes) {
             label = box.clsName
             sides = box.side
-            val distanceCategory = categorizeDistance(box)
+            val distanceCategory = categorizeDistance(box, label)
             threshold = distanceCategory
         }
 
@@ -179,7 +181,7 @@ class Detector(
                 val boxWidth = x2 - x1
                 val objectCenter = (x1 + x2) / 2
                 val side = when {
-//                    boxWidth >= 0.8 * screenWidth -> "Front"
+                    boxWidth >= 0.8 * screenWidth -> "Front"
                     objectCenter == screenCenter -> "Front"
                     objectCenter < screenCenter -> "Left"
                     else -> "Right"

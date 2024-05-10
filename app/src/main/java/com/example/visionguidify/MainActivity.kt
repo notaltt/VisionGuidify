@@ -227,7 +227,7 @@ class MainActivity : AppCompatActivity(), Detector.DetectorListener, TextToSpeec
             }
 
             if(label == "QRCode" && threshold == "Far"){
-                speakText("Detected a far QR Code, please walk a few steps to scan the QR Code.")
+                startTtsWithInterval("Detected a far QR Code, please walk a few steps to scan the QR Code.")
             }
 
             if (label == "QRCode" && System.currentTimeMillis() - lastDetectionTime > cooldownDuration && threshold == "Near") {
@@ -244,7 +244,7 @@ class MainActivity : AppCompatActivity(), Detector.DetectorListener, TextToSpeec
 
             handler1.postDelayed({
                 isTtsRunning = false
-            }, 10000) // 10-second interval
+            }, 5000) // 10-second interval
         }
     }
 
