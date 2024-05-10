@@ -35,6 +35,10 @@ class ScanningActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Bluet
     private var isQRCodeDetected: Boolean = false
     private val bluetoothListener = ScanningActivityBluetoothListener()
 
+    private val handler1 = Handler(Looper.getMainLooper())
+    private var isScanning = false
+    private var isTtsRunning = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_scanning)
@@ -53,7 +57,24 @@ class ScanningActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Bluet
         button.setOnClickListener {
             askSpeechInput()
         }
+
+        if (isScanning){
+//            startTtsWithInterval("Slowly turn right and left, to look for the QR Code")
+            speakText("TEST SCANNING")
+        }
     }
+
+    private fun startTtsWithInterval(message: String) {
+        if (!isTtsRunning) {
+            isTtsRunning = true
+            speakText(message)
+
+            handler1.postDelayed({
+                isTtsRunning = false
+            }, 10000) // 10-second interval
+        }
+    }
+
 
     override fun onBluetoothMessageReceived(message: String) {
         if (isQRCodeDetected) {
@@ -65,6 +86,7 @@ class ScanningActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Bluet
         } else {
             // Optionally, you can queue the messages or ignore them until QR code detection
             // Or you can handle them differently based on your app's requirements
+            startTtsWithInterval("Slowly turn right and left, to look for the QR Code")
         }
     }
 
@@ -83,6 +105,7 @@ class ScanningActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Bluet
                 checkBarcode(result.contents)
                 // Set the flag to indicate QR code detection
                 isQRCodeDetected = true
+                isScanning = false
             } else {
                 Log.e("QR Result", "No content found")
             }
@@ -97,6 +120,7 @@ class ScanningActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Bluet
     }
 
     private fun startScanning() {
+        isScanning = true
         try {
             val integrator = IntentIntegrator(this)
             integrator.setOrientationLocked(false) // Allow both portrait and landscape scanning

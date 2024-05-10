@@ -94,6 +94,7 @@ class MainActivity : AppCompatActivity(), Detector.DetectorListener, TextToSpeec
     private fun launchScanningActivity() {
         speakText("QR CODE DETECTED")
         speakText("STOP TO SCAN THE QR CODE")
+        speakText("Slowly turn right and left, to look for the QR Code")
         val intent = Intent(this@MainActivity, ScanningActivity::class.java)
         startActivity(intent)
     }

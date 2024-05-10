@@ -93,8 +93,7 @@ class Detector(
     }
 
     private fun categorizeDistance(box: BoundingBox, label: String): String {
-        val nearThreshold: Float = if (label == "QRCode") 0.20F else 0.5F
-
+        val nearThreshold: Float = if (label == "QRCode" || label == "person") 0.20F else 0.50F
 
         val boxWidth = box.x2 - box.x1
         return when {
