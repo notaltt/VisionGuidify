@@ -245,7 +245,7 @@ class MainActivity : AppCompatActivity(), Detector.DetectorListener, TextToSpeec
 
             handler1.postDelayed({
                 isTtsRunning = false
-            }, 5000) // 10-second interval
+            }, 2000) // 10-second interval
         }
     }
 
