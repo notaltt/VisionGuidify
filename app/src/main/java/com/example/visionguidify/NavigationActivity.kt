@@ -17,6 +17,7 @@ class NavigationActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     private var tts: TextToSpeech? = null
     private var directionList: String? = null
     private var locationNav: String? = null
+    private var source:String? = null
 //    private var arrayList: ArrayList<String>? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -26,6 +27,7 @@ class NavigationActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         list = findViewById(R.id.instructionList)
         directionList = intent.getStringExtra("direction")
         locationNav = intent.getStringExtra("location")
+        source = intent.getStringExtra("source")
 
         tts = TextToSpeech(this, this)
 
@@ -34,7 +36,11 @@ class NavigationActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
 //            list.text = arrayList?.joinToString("\n")
 //        }
 
-        startQRScanner()
+        if(source == "MainActivity"){
+            startQRScanner()
+        }else{
+            mainIntent()
+        }
     }
     @Deprecated("Deprecated in Java")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -54,13 +60,14 @@ class NavigationActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
                     if (splitDirection?.contains(item) == true) {
                         splitDirection.remove(item)
                         speakText(item)
+                        mainIntent()
                     }
                 }
 
                 if (splitDirection != null) {
                     if (splitDirection.isEmpty()) {
                         speakText("YOU ARE NEAR $locationNav, LOOK FOR INFORMATION QR CODE")
-                        startQRScanner("LOOK FOR INFORMATION QR CODE")
+                        mainIntent()
                     }
                 }
 
@@ -106,6 +113,14 @@ class NavigationActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         } else {
             Log.e("TTS", "Initialization failed")
         }
+    }
+
+    fun mainIntent(){
+        val intent = Intent(this@NavigationActivity, MainActivity::class.java)
+        intent.putExtra("source", "NavigationActivity")
+        intent.putExtra("direction", directionList)
+        intent.putExtra("location", locationNav)
+        startActivity(intent)
     }
 
     private fun speakText(text: String) {

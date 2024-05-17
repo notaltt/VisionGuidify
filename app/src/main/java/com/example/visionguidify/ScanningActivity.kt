@@ -35,10 +35,6 @@ class ScanningActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Bluet
     private var isQRCodeDetected: Boolean = false
     private val bluetoothListener = ScanningActivityBluetoothListener()
 
-    private val handler1 = Handler(Looper.getMainLooper())
-    private var isScanning = false
-    private var isTtsRunning = false
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_scanning)
@@ -58,21 +54,13 @@ class ScanningActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Bluet
             askSpeechInput()
         }
 
-        if (isScanning){
-//            startTtsWithInterval("Slowly turn right and left, to look for the QR Code")
-            speakText("TEST SCANNING")
-        }
     }
 
-    private fun startTtsWithInterval(message: String) {
-        if (!isTtsRunning) {
-            isTtsRunning = true
-            speakText(message)
-
-            handler1.postDelayed({
-                isTtsRunning = false
-            }, 10000) // 10-second interval
-        }
+    private fun redirectToMainActivity() {
+        // Redirect to main activity
+        val intent = Intent(this@ScanningActivity, MainActivity::class.java)
+        startActivity(intent)
+        finish() // Finish the scanning activity
     }
 
 
@@ -86,7 +74,6 @@ class ScanningActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Bluet
         } else {
             // Optionally, you can queue the messages or ignore them until QR code detection
             // Or you can handle them differently based on your app's requirements
-            startTtsWithInterval("Slowly turn right and left, to look for the QR Code")
         }
     }
 
@@ -105,7 +92,6 @@ class ScanningActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Bluet
                 checkBarcode(result.contents)
                 // Set the flag to indicate QR code detection
                 isQRCodeDetected = true
-                isScanning = false
             } else {
                 Log.e("QR Result", "No content found")
             }
@@ -120,7 +106,6 @@ class ScanningActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Bluet
     }
 
     private fun startScanning() {
-        isScanning = true
         try {
             val integrator = IntentIntegrator(this)
             integrator.setOrientationLocked(false) // Allow both portrait and landscape scanning
@@ -155,6 +140,7 @@ class ScanningActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Bluet
     }
 
     private fun speakText(text: String) {
+        tts?.setSpeechRate(0.8f) // 80% speech rate
         tts?.speak(text, TextToSpeech.QUEUE_ADD, null, null)
     }
 
@@ -256,10 +242,10 @@ class ScanningActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Bluet
     }
 
     private fun extractDynamicStrings(text: String): List<String> {
-        val regex = Regex("""DIRECTION: ([A-Z]+)""")
+        val regex = Regex("""DIRECTION: ([A-Z]+(?:\s+[A-Z]+)*)""")
         val matches = regex.findAll(text)
 
-        return matches.mapNotNull { it.groups[1]?.value }.toList()
+        return matches.flatMap { it.groups[1]?.value?.split("\\s+".toRegex()) ?: emptyList() }.toList()
     }
 
     private fun extractDirectionInstructions(text: String, direction: String): List<String> {

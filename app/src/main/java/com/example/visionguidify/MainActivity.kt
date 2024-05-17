@@ -48,12 +48,19 @@ class MainActivity : AppCompatActivity(), Detector.DetectorListener, TextToSpeec
 
     private lateinit var cameraExecutor: ExecutorService
     private lateinit var bluetoothManager: BluetoothManager<Any?>
+    private var source:String? = null
+    private var location:String? = null
+    private var direction:String? = null
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        source = intent.getStringExtra("source")
+        direction = intent.getStringExtra("direction")
+        location = intent.getStringExtra("location")
 
         // Initialize BluetoothManager after setContentView
         bluetoothManager = BluetoothManager(this, this)
@@ -234,6 +241,13 @@ class MainActivity : AppCompatActivity(), Detector.DetectorListener, TextToSpeec
             if (label == "QRCode" && System.currentTimeMillis() - lastDetectionTime > cooldownDuration && threshold == "Near") {
                 lastDetectionTime = System.currentTimeMillis()
                 launchScanningActivity()
+                if(source == "NavigationActivity"){
+                    val intent = Intent(this@MainActivity, NavigationActivity::class.java)
+                    intent.putExtra("direction", direction)
+                    intent.putExtra("location", location)
+                    intent.putExtra("source", "MainActivity")
+                    startActivity(intent)
+                }
             }
         }
     }
@@ -245,7 +259,7 @@ class MainActivity : AppCompatActivity(), Detector.DetectorListener, TextToSpeec
 
             handler1.postDelayed({
                 isTtsRunning = false
-            }, 2000) // 10-second interval
+            }, 10000) // 10-second interval
         }
     }
 
